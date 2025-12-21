@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { toast } from "@/hooks/use-toast" // Assuming you have a toast hook, or we can use basic alert for now if not setup
+import { useToast } from "@/hooks/use-toast"
 
 // If use-toast is not setup yet, we can mock it or just use simple alert for V1, 
 // but user asked for "clean" code, so maybe I should not assume toast and just handle error inline.
@@ -34,8 +34,8 @@ export function LoginForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
+  const { toast } = useToast()
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,7 +46,6 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    setErrorMessage(null)
     
     try {
       // Use NextAuth signIn with 'credentials' provider
@@ -57,13 +56,27 @@ export function LoginForm() {
       })
 
       if (result?.error) {
-        setErrorMessage("Invalid email or password.")
+         toast({
+            variant: "destructive",
+            title: "Authentication Failed",
+            description: "Invalid email or password. Please try again.",
+         })
       } else if (result?.ok) {
-        router.push("/dashboard")
-        router.refresh()
+        toast({
+            title: "Success",
+            description: "Login successful! (Dashboard is under construction)",
+        })
+        // For development/handover check
+        console.log("Login Success. Session Created.")
+        // router.push("/dashboard") // Dashboard removed as per request
+        // router.refresh()
       }
     } catch (error) {
-      setErrorMessage("Something went wrong. Please try again.")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Something went wrong. Please check your connection.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -122,11 +135,7 @@ export function LoginForm() {
             )}
           />
           
-          {errorMessage && (
-             <div className="text-sm font-medium text-destructive text-center">
-                {errorMessage}
-             </div>
-          )}
+
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -30,6 +30,7 @@ export const config = {
           const data = await res.json()
 
           if (!res.ok) {
+            console.error("Django Auth Failed:", data)
             throw new Error(data?.detail || "Authentication Failed")
           }
 
