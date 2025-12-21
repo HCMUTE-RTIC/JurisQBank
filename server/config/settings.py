@@ -138,6 +138,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Email Backend (Console for Dev)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # S3 / MinIO Configuration
 MINIO_ACCESS_KEY_ID = env('MINIO_ROOT_USER', default='minioadmin')
 MINIO_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD', default='minioadmin')
@@ -146,15 +149,6 @@ MINIO_S3_ENDPOINT_URL = env('MINIO_S3_ENDPOINT_URL', default='http://127.0.0.1:9
 # Region is required by the library even for MinIO
 MINIO_S3_REGION_NAME = env('MINIO_S3_REGION_NAME', default='us-east-1') 
 MINIO_S3_SIGNATURE_VERSION = 's3v4'
-
-# Email Configuration
-EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='localhost')
-EMAIL_PORT = env.int('EMAIL_PORT', default=25)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=False)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 
 STORAGES = {
     "default": {
@@ -204,5 +198,3 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
 }
-
-GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default=None)

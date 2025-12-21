@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from .serializers import (
     LoginSerializer, 
     GoogleLoginSerializer, 
@@ -10,12 +11,7 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer
 )
-from .services import (
-    validate_google_id_token, 
-    get_or_create_google_user,
-    send_password_reset_code,
-    verify_reset_code_and_set_password
-)
+from .services import validate_google_id_token, get_or_create_google_user, send_password_reset_email
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -48,7 +44,6 @@ class GoogleLoginView(APIView):
         serializer.is_valid(raise_exception=True)
         id_token = serializer.validated_data.get('id_token')
         
-        # Service logic
         google_data = validate_google_id_token(id_token)
         user = get_or_create_google_user(google_data)
         
@@ -67,16 +62,16 @@ class UserMeView(APIView):
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
-    
+
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         
-        send_password_reset_code(email)
+        send_password_reset_email(email)
         
         return Response(
-            {"message": "If the email exists, a reset code has been sent."},
+            {"message": "If an account with this email exists, a password reset link has been sent."},
             status=status.HTTP_200_OK
         )
 
@@ -88,14 +83,10 @@ class PasswordResetConfirmView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        data = serializer.validated_data
-        verify_reset_code_and_set_password(
-            data['email'], 
-            data['code'], 
-            data['new_password']
-        )
+        user = serializer.validated_data['user']
+        password = serializer.validated_data['new_password']
         
-        return Response(
-            {"message": "Password has been reset successfully."},
-            status=status.HTTP_200_OK
-        )
+        user.set_password(password)
+        user.save()
+        
+        return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
