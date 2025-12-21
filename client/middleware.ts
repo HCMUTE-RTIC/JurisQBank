@@ -1,5 +1,5 @@
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
  
 export default auth((req) => {
   // Simplest middleware: just protect everything by default or selective?
