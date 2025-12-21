@@ -3,8 +3,19 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import LoginSerializer, GoogleLoginSerializer, UserSerializer
-from .services import validate_google_id_token, get_or_create_google_user
+from .serializers import (
+    LoginSerializer, 
+    GoogleLoginSerializer, 
+    UserSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer
+)
+from .services import (
+    validate_google_id_token, 
+    get_or_create_google_user,
+    send_password_reset_code,
+    verify_reset_code_and_set_password
+)
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -52,3 +63,39 @@ class UserMeView(APIView):
     
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+    
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        
+        send_password_reset_code(email)
+        
+        return Response(
+            {"message": "If the email exists, a reset code has been sent."},
+            status=status.HTTP_200_OK
+        )
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        verify_reset_code_and_set_password(
+            data['email'], 
+            data['code'], 
+            data['new_password']
+        )
+        
+        return Response(
+            {"message": "Password has been reset successfully."},
+            status=status.HTTP_200_OK
+        )
