@@ -14,11 +14,9 @@ def validate_google_id_token(token: str) -> dict:
     Validates a Google ID token and returns the user info.
     """
     try:
-        # If we have a specific audience (CLIENT_ID) configured, verify it.
-        # For this implementation, we'll assume verifying against Google's certs is enough, 
-        # but allow passing audience if available in env.
-        
-        id_info = id_token.verify_oauth2_token(token, requests.Request())
+        # Verify with Audience (Client ID) if available
+        audience = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), audience=audience)
         
         # Verify issuer
         if id_info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
