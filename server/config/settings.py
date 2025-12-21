@@ -147,6 +147,15 @@ MINIO_S3_ENDPOINT_URL = env('MINIO_S3_ENDPOINT_URL', default='http://127.0.0.1:9
 MINIO_S3_REGION_NAME = env('MINIO_S3_REGION_NAME', default='us-east-1') 
 MINIO_S3_SIGNATURE_VERSION = 's3v4'
 
+# Email Configuration
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='localhost')
+EMAIL_PORT = env.int('EMAIL_PORT', default=25)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=False)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
