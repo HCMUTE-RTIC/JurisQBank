@@ -3,7 +3,7 @@
 Django REST Framework backend for JurisQBank.
 
 ## Tech Stack
-- **Framework**: Django 6.0
+- **Framework**: Django 6.0 (Python 3.13+)
 - **Database**: PostgreSQL 16
 - **Cache**: Redis
 - **Storage**: MinIO (S3 Compatible)
@@ -15,6 +15,7 @@ Django REST Framework backend for JurisQBank.
     ```bash
     python3 -m venv venv # or python -m venv venv
     source venv/bin/activate # or .\venv\Scripts\activate on Windows
+    cd server
     ```
 
 2.  **Install Dependencies**:
@@ -25,12 +26,22 @@ Django REST Framework backend for JurisQBank.
 3.  **Environment Variables**:
     Ensure the root `.env` file is configured (Postgres connection, Redis URL, MinIO credentials).
 
-4.  **Database Migration**:
+4. **Run docker environment services**:
+    ```bash
+    docker compose up -d
+    ```
+
+5. **Create migrations for core app**:
+    ```bash
+    python manage.py makemigrations core
+    ```
+
+6. **Migrate**:
     ```bash
     python manage.py migrate
     ```
 
-5.  **Run Server**:
+7. **Run Server**:
     ```bash
     python manage.py runserver
     ```
