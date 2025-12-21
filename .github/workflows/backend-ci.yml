@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'server/**'
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'server/**'
+
+jobs:
+  backend-check:
+    runs-on: self-hosted
+    # Safe and isolated execution: Run in Python 3.13 Container
+    # The host only needs Docker, no system-wide Python installation required
+    container: python:3.13
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Run Linting (Flake8)
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics

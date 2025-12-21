@@ -1,0 +1,39 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'client/**'
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'client/**'
+
+jobs:
+  frontend-check:
+    runs-on: self-hosted
+    # Safe and isolated execution: Run in Node 22 Container
+    # The host only needs Docker, no system-wide Node.js installation required
+    container: node:22
+    defaults:
+      run:
+        working-directory: ./client
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        # The Node container might not have pnpm, so we install it globally
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Linting (ESLint)
+        run: pnpm lint
+
+      - name: Build Frontend
+        run: pnpm build
