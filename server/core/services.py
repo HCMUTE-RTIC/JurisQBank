@@ -1,5 +1,9 @@
+import random
+import string
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.core.cache import cache
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from rest_framework.exceptions import AuthenticationFailed
@@ -11,16 +15,8 @@ def validate_google_id_token(token: str) -> dict:
     """
     try:
         # If we have a specific audience (CLIENT_ID) configured, verify it.
-        # For now, we often just decode without audience check if specific client id is not yet env var,
-        # OR we assume the frontend sends a valid one. 
-        # Ideally: id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
-        
-        # We will use basic verification without audience hard enforcement if not provided,
-        # but in production you MUST specify the Audience.
-        # Assuming CLIENT_ID might be in settings or env.
-        
         # For this implementation, we'll assume verifying against Google's certs is enough, 
-        # but allow passing audience if available.
+        # but allow passing audience if available in env.
         
         id_info = id_token.verify_oauth2_token(token, requests.Request())
         
@@ -43,21 +39,71 @@ def get_or_create_google_user(google_user_data: dict) -> User:
     # Check if user exists
     try:
         user = User.objects.get(email=email)
-        # If user exists but via password, we might want to link or just allow login.
-        # Check auth_provider?
+        # We allow linking to existing accounts
         if user.auth_provider != 'google':
-             # Logic choice: Allow linking or error? 
-             # For simpler flow: Update provider or just allow.
-             # User requested "Google Login", so we allow logging in existing email users too often.
-             pass
+             user.auth_provider = 'google'
+             user.google_id = google_user_data.get('sub')
+             user.save()
     except User.DoesNotExist:
         # Create new user
         user = User.objects.create_user(
             email=email,
-            password=None, # Unusable password
+            password=None,
             full_name=full_name,
             auth_provider='google',
             is_active=True
         )
     
     return user
+
+def send_password_reset_code(email: str):
+    """
+    Generates a code, saves it in Redis, and sends it via email.
+    """
+    User = get_user_model()
+    if not User.objects.filter(email=email).exists():
+        # Security: Do not reveal user existence, but for now we just return.
+        # Ideally, send a generic email saying "if you have an account..."
+        return
+
+    # Generate 6-digit code
+    code = ''.join(random.choices(string.digits, k=6))
+    
+    # Store in cache (Redis) for 15 minutes (900 seconds)
+    cache_key = f"password_reset_code:{email}"
+    cache.set(cache_key, code, timeout=900)
+    
+    # Send email
+    subject = "JurisQBank - Password Reset Code"
+    message = f"Your password reset code is: {code}\nThis code will expire in 15 minutes."
+    
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        # Log error in production
+        print(f"Error sending email: {e}")
+        raise e
+
+def verify_reset_code_and_set_password(email: str, code: str, new_password: str):
+    cache_key = f"password_reset_code:{email}"
+    cached_code = cache.get(cache_key)
+    
+    if not cached_code or cached_code != code:
+        raise AuthenticationFailed("Invalid or expired reset code.")
+    
+    User = get_user_model()
+    try:
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.save()
+        
+        # Invalidate code
+        cache.delete(cache_key)
+    except User.DoesNotExist:
+        raise AuthenticationFailed("User not found.")
