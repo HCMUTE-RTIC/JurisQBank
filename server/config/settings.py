@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -127,7 +128,39 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/6.0/howto/static-files/
+
 STATIC_URL = 'static/'
+
+# S3 / MinIO Configuration
+MINIO_ACCESS_KEY_ID = env('MINIO_ROOT_USER', default='minioadmin')
+MINIO_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD', default='minioadmin')
+MINIO_STORAGE_BUCKET_NAME = env('MINIO_STORAGE_BUCKET_NAME', default='learning-materials')
+MINIO_S3_ENDPOINT_URL = env('MINIO_S3_ENDPOINT_URL', default='http://127.0.0.1:9000')
+# Region is required by the library even for MinIO
+MINIO_S3_REGION_NAME = env('MINIO_S3_REGION_NAME', default='us-east-1') 
+MINIO_S3_SIGNATURE_VERSION = 's3v4'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": MINIO_ACCESS_KEY_ID,
+            "secret_key": MINIO_SECRET_ACCESS_KEY,
+            "bucket_name": MINIO_STORAGE_BUCKET_NAME,
+            "endpoint_url": MINIO_S3_ENDPOINT_URL,
+            "region_name": MINIO_S3_REGION_NAME,
+            "signature_version": MINIO_S3_SIGNATURE_VERSION,
+            # Self-hosted MinIO specific settings
+            "file_overwrite": False,
+            "verify": False, # useful for self-signed certs if using https
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
