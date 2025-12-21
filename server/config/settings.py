@@ -138,6 +138,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Email Backend (Console for Dev)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # S3 / MinIO Configuration
 MINIO_ACCESS_KEY_ID = env('MINIO_ROOT_USER', default='minioadmin')
 MINIO_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD', default='minioadmin')
@@ -174,6 +177,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 SPECTACULAR_SETTINGS = {
