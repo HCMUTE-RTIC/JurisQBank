@@ -10,7 +10,7 @@ The project is divided into two main parts:
 
 ## Prerequisites
 - Docker & Docker Compose
-- Python 3.10+
+- Python 3.13+ (Django 6.0 support only in Python 3.13+)
 - Node.js & pnpm
 
 ## Quick Start
