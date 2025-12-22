@@ -41,7 +41,12 @@ Django REST Framework backend for JurisQBank.
     python manage.py migrate
     ```
 
-7. **Run Server**:
+7. **Create superuser**: (Optional)
+    ```bash
+    python manage.py createsuperuser
+    ```
+
+8. **Run Server**:
     ```bash
     python manage.py runserver
     ```
