@@ -21,10 +21,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 
-// If use-toast is not setup yet, we can mock it or just use simple alert for V1, 
-// but user asked for "clean" code, so maybe I should not assume toast and just handle error inline.
-// I will use inline error state.
-
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
@@ -50,7 +46,7 @@ export function LoginForm() {
     try {
       // Use NextAuth signIn with 'credentials' provider
       const result = await signIn("credentials", {
-        redirect: false, // Prevent automatic redirect to let us handle it
+        redirect: false, 
         email: values.email,
         password: values.password,
       })
@@ -66,10 +62,7 @@ export function LoginForm() {
             title: "Success",
             description: "Login successful! (Dashboard is under construction)",
         })
-        // For development/handover check
-        console.log("Login Success. Session Created.")
-        // router.push("/dashboard") // Dashboard removed as per request
-        // router.refresh()
+        console.log("Login Success. Session Created.") //check logic login
       }
     } catch (error) {
       toast({
