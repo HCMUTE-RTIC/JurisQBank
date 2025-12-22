@@ -17,9 +17,7 @@ api.interceptors.request.use(
     // For server-side, we pass headers manually.
     if (typeof window !== 'undefined') {
         const session = await getSession();
-        // @ts-ignore_
         if (session?.user?.accessToken) {
-            // @ts-ignore
             config.headers['Authorization'] = `Bearer ${session.user.accessToken}`;
         }
     }

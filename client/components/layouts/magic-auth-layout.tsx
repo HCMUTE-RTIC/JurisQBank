@@ -21,7 +21,7 @@ export function MagicAuthLayout({ children, title, description }: MagicAuthLayou
         cy={1}
         cr={1}
         className={cn(
-          "[mask-image:radial-gradient(900px_circle_at_center,white,transparent)]",
+          "mask-[radial-gradient(900px_circle_at_center,white,transparent)]",
           "opacity-50"
         )}
       />

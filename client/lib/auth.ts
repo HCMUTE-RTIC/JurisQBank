@@ -54,7 +54,7 @@ export const config = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       // Initial sign in
       if (user) {
         return {
@@ -73,9 +73,7 @@ export const config = {
             email: token.email as string,
             name: token.full_name as string,
             role: token.role as string,
-            // @ts-ignore
             accessToken: token.accessToken as string,
-            // @ts-ignore
             refreshToken: token.refreshToken as string,
         }
       }

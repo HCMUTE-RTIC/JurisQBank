@@ -27,7 +27,7 @@ const formSchema = z.object({
 })
 
 export function LoginForm() {
-  const router = useRouter()
+//   const router = useRouter() // Unused for now
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { toast } = useToast()
@@ -64,7 +64,7 @@ export function LoginForm() {
         })
         console.log("Login Success. Session Created.") //check logic login
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
