@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - develop
-    paths:
-      - 'server/**'
   pull_request:
     branches:
       - develop
-    paths:
-      - 'server/**'
 
 jobs:
   backend-check:
