@@ -8,6 +8,7 @@ from .serializers import (
     LoginSerializer, 
     GoogleLoginSerializer, 
     UserSerializer,
+    UserUpdateSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer
 )
@@ -55,9 +56,14 @@ class GoogleLoginView(APIView):
 
 class UserMeView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserSerializer
     
     def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(UserSerializer(request.user).data)
 
 class PasswordResetRequestView(APIView):
