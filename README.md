@@ -33,6 +33,9 @@ The project is divided into two main parts:
 4.  **Frontend Setup**:
     See [client/README.md](client/README.md).
 
+5.  **Testing**:
+    See [tests/README.md](tests/README.md).
+
 ## Services Info
 - **Postgres**: Port `5432`
 - **Redis**: Port `6379`
