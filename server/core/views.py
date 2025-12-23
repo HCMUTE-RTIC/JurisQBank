@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,12 +21,12 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
-class LoginView(APIView):
+class LoginView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         
@@ -36,12 +36,12 @@ class LoginView(APIView):
             'user': UserSerializer(user).data
         }, status=status.HTTP_200_OK)
 
-class GoogleLoginView(APIView):
+class GoogleLoginView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = GoogleLoginSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         id_token = serializer.validated_data.get('id_token')
         
@@ -54,11 +54,12 @@ class GoogleLoginView(APIView):
             'user': UserSerializer(user).data
         }, status=status.HTTP_200_OK)
 
-class UserMeView(APIView):
+class UserMeView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
     
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        return Response(self.get_serializer(request.user).data)
 
     def patch(self, request):
         serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
@@ -66,12 +67,12 @@ class UserMeView(APIView):
         serializer.save()
         return Response(UserSerializer(request.user).data)
 
-class PasswordResetRequestView(APIView):
+class PasswordResetRequestView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         
@@ -82,12 +83,12 @@ class PasswordResetRequestView(APIView):
             status=status.HTTP_200_OK
         )
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = PasswordResetConfirmSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user = serializer.validated_data['user']
