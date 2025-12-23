@@ -4,13 +4,10 @@ on:
   push:
     branches:
       - develop
-    paths:
-      - 'client/**'
+
   pull_request:
     branches:
       - develop
-    paths:
-      - 'client/**'
 
 jobs:
   frontend-check:
