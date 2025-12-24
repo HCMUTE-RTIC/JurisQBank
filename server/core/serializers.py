@@ -10,8 +10,18 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'role', 'avatar_url', 'created_at']
+        fields = ['id', 'email', 'full_name', 'role', 'avatar_url', 'unit', 'created_at']
         read_only_fields = ['id', 'role', 'created_at']
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['full_name', 'avatar_url', 'unit']
+    
+    def validate_unit(self, value):
+        if value is None:
+            raise serializers.ValidationError("Unit/Class is required.")
+        return value
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
