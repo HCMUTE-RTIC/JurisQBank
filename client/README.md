@@ -15,15 +15,19 @@ Next.js frontend for JurisQBank, built with TypeScript and Tailwind CSS.
     pnpm install
     ```
 
-2.  **Run Development Server**:
+2.  **Environment Setup**:
+    ```bash
+    cp .env.local.example .env.local
+    ```
+
+3.  **Run Development Server**:
     ```bash
     pnpm dev
     ```
 
-3.  **Build for Production**:
+4.  **Build for Production**:
     ```bash
     pnpm build
-    pnpm start
     ```
 
 ## Proxy / API
