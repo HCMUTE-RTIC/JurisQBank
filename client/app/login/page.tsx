@@ -1,4 +1,3 @@
-
 import { LoginForm } from "@/components/auth/login-form"
 import { MagicAuthLayout } from "@/components/layouts/magic-auth-layout"
 
