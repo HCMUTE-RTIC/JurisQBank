@@ -83,9 +83,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"postgres://{env('POSTGRES_USER')}:{env('POSTGRES_PASSWORD')}@localhost:5432/{env('POSTGRES_DB')}")
-}
+if env('DATABASE_URL', default=None):
+    DATABASES = {
+        'default': env.db('DATABASE_URL')
+    }
+else:
+    # Safe default for local development if DATABASE_URL is not set
+    # Using defaults for all env vars to avoid KeyError in CI/Test
+    POSTGRES_USER = env('POSTGRES_USER', default='postgres')
+    POSTGRES_PASSWORD = env('POSTGRES_PASSWORD', default='postgres')
+    POSTGRES_DB = env('POSTGRES_DB', default='jurisqbank')
+    
+    DATABASES = {
+        'default': env.db(
+            'DATABASE_URL', 
+            default=f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:5432/{POSTGRES_DB}"
+        )
+    }
 
 # Cache
 CACHES = {

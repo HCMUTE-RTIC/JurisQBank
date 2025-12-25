@@ -19,6 +19,9 @@ The project is divided into two main parts:
     ```bash
     cp .env.example .env
     # Edit .env with your credentials if needed
+    # Enviroment frontend(client)
+    cd client
+    cp .env.example .env.local
     ```
 
 2.  **Start Infrastructure Services**:

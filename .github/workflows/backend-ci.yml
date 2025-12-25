@@ -1,18 +1,15 @@
-name: Backend CI
+name: Backend Pipeline
 
 on:
   push:
-    branches:
-      - develop
+    branches: ["develop"]
   pull_request:
-    branches:
-      - develop
+    branches: ["develop"]
 
 jobs:
-  backend-check:
+  backend-quality-gate:
+    name: Lint & Test
     runs-on: self-hosted
-    # Safe and isolated execution: Run in Python 3.13 Container
-    # The host only needs Docker, no system-wide Python installation required
     container: python:3.13
     defaults:
       run:
@@ -21,13 +18,31 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Cache pip to speed up installation
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('server/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install Dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install flake8
 
-      - name: Run Linting (Flake8)
+      - name: Linting (Flake8)
         run: |
+          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings.
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run Unit Tests
+        env:
+          SECRET_KEY: "django-insecure-ci-test-key"
+          DATABASE_URL: "sqlite://:memory:"
+        run: |
+          python manage.py test
