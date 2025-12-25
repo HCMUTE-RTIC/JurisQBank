@@ -5,7 +5,9 @@ from .views import (
     GoogleLoginView, 
     UserMeView,
     PasswordResetRequestView,
-    PasswordResetConfirmView
+    PasswordResetConfirmView,
+    ContestListCreateView,
+    ContestUpdateView
 )
 
 urlpatterns = [
@@ -16,4 +18,7 @@ urlpatterns = [
     
     path('auth/password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('auth/password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    #URL contest
+    path('contests/', ContestListCreateView.as_view(), name='contest-list-create'),
+    path('contests/<uuid:contest_id>/', ContestUpdateView.as_view(), name='contest-update'),
 ]
