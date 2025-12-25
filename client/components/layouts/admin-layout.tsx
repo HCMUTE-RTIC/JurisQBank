@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { stat } from "fs";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { data: session, status } = useSession();
@@ -10,17 +11,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
     if (status === "loading") return; // Do nothing while loading
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" || !(session && session.user?.role == "ADMIN")) {
       router.push("/login");
-    } else if (status === "authenticated") {
-      setIsAuthenticated(true);
     }
   }, [session, status, router]);
 
   if (status === "loading") {
-    return <div>Loading...</div>; // You can replace this with a spinner or skeleton
+    return <div>Loading...</div>;
   }
-  if (!isAuthenticated) {
+  if (status === "unauthenticated") {
     return null;
   }
 
