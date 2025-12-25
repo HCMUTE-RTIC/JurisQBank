@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -27,7 +28,7 @@ const formSchema = z.object({
 })
 
 export function LoginForm() {
-//   const router = useRouter() // Unused for now
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const { toast } = useToast()

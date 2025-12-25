@@ -1,8 +1,4 @@
-function AdminRoleCheck(role: string = "admin") {
-    // return role == "admin" ? true : false
-    return false
-}
-
+//Under construction
 export function AdminDashboard() {
     return (
         <div>
