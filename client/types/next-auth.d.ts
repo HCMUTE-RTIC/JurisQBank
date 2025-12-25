@@ -9,6 +9,7 @@ declare module "next-auth" {
       accessToken: string
       refreshToken: string
       full_name?: string
+      unit?: string
     } & DefaultSession["user"]
   }
 
@@ -18,6 +19,7 @@ declare module "next-auth" {
       full_name?: string
       accessToken: string
       refreshToken: string
+      unit?: string
   }
 }
 
@@ -28,5 +30,6 @@ declare module "next-auth/jwt" {
         accessToken: string
         refreshToken: string
         full_name?: string
+        unit?: string
     }
 }
