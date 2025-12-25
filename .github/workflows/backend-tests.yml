@@ -1,0 +1,32 @@
+name: Backend Tests
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  backend-tests:
+    runs-on: self-hosted
+    container: python:3.13
+    defaults:
+      run:
+        working-directory: ./server
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        env:
+          SECRET_KEY: "django-insecure-ci-test-key"
+          DATABASE_URL: "sqlite://:memory:"
+        run: |
+          python manage.py test
