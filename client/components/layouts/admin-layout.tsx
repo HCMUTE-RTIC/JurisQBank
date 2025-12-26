@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { stat } from "fs";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+interface AdminLayoutProps {
+    children: React.ReactNode;
+    sidebar?: React.ReactNode;
+}
+
+export default function AdminLayout({ children, sidebar } : AdminLayoutProps) {
     const { data: session, status } = useSession();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
     if (status === "loading") return; // Do nothing while loading
     if (status === "unauthenticated" || !(session && session.user?.role == "ADMIN")) {
@@ -23,5 +26,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="flex">
+        <aside>
+            {sidebar}
+        </aside>
+        <main>
+            {children}
+        </main>
+    </div>
+  );
 }
