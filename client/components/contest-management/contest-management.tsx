@@ -1,9 +1,12 @@
 "use client";
 
 import React from "react";  
-import { Table, Tag, Button, Space, Input, Typography } from "antd";
+import { Form, Table, Tag, Button, Space, Input, Typography, message, Card, Modal, DatePicker } from "antd";
+
+import type {Dayjs} from "dayjs"
 import { PlusOutlined, SearchOutlined, CopyOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useState } from "react";
 
 const { Text } = Typography;
 
@@ -35,7 +38,119 @@ const getStatusColor = (status?: ContestStatus) => {
   return "default";
 };
 
+const CreateContest = () => {
+  interface valueProps {
+    name: string,
+    code: string,
+    description?: string
+    duration: [Dayjs, Dayjs]
+  }
+  const [form] = Form.useForm()
+  const { RangePicker } = DatePicker;
+  const onFinish = (values: valueProps) => {
+    const newContest: Contest = {
+      key: "",
+      code: values.code,
+      name: values.name,
+      category: "",
+      startDate: values.duration[0].format("YYYY-MM-DD"),
+      endDate: values.duration[1].format("YYYY-MM-DD"),
+      status: "Ongoing",
+    }
+    console.log(newContest);
+    message.success("Tạo cuộc thi thành công")
+    form.resetFields();
+  }
+  return (
+      <Card title="Tạo cuộc thi mới" style={{ maxWidth: 800, margin: "20px auto" }}>
+        <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            initialValues={{ maxParticipants: 100 }}
+        >
+          <Form.Item
+              label="Tên cuộc thi"
+              name="name"
+              rules={[{ required: true, message: "Vui lòng nhập tên cuộc thi!" }]}
+          >
+            <Input placeholder="Ví dụ: Lập trình thuật toán 2024" />
+          </Form.Item>
+          <Form.Item
+              label="Mã cuộc thi"
+              name="code"
+              rules={[
+                { required: true, message: "Vui lòng nhập mã!" },
+                { pattern: /^[A-Z0-9_]+$/, message: "Mã chỉ gồm chữ in hoa, số và dấu gạch dưới" }
+              ]}
+          >
+            <Input placeholder="Vd: CONTEST_01" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {/* Thời gian diễn ra */}
+            <Form.Item
+                label="Thời gian diễn ra"
+                name="duration"
+                rules={[{ required: true, message: "Vui lòng chọn thời gian!" }]}
+            >
+              <RangePicker
+                  showTime
+                  format="DD/MM/YYYY HH:mm"
+                  style={{ width: "100%" }}
+              />
+            </Form.Item>
+          </div>
+
+          {/* Mô tả cuộc thi */}
+          <Form.Item label="Mô tả cuộc thi" name="description">
+            <Input.TextArea rows={4} placeholder="Nhập nội dung cuộc thi..." />
+          </Form.Item>
+
+          {/* Nút bấm */}
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
+                Tạo cuộc thi
+              </Button>
+              <Button htmlType="button" onClick={() => form.resetFields()}>
+                Làm mới
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
+  )
+}
+
 export default function ContestManagement() {
+  const [showCreateContest, setShowCreateContest] = useState(false);
+  const startTime = new Date();
+  const endTime = new Date(startTime)
+
+  endTime.setHours(endTime.getDate() + 1);
+
+  const [data, setData] = useState<Contest[]>([{
+    key: "",
+    code: "001",
+    name: "Thi cuối kỳ 1",
+    category: "Constest",
+    startDate: startTime.toLocaleDateString(),
+    endDate: endTime.toLocaleDateString(),
+    status: "Ongoing",
+  }]);
+
+  const RemoveContest = (contestCode: string) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: `Bạn có muốn xóa cuộc thi ${contestCode} không?`,
+      onOk: () => {
+        const newData = data.filter((item) => item.code !== contestCode);
+        setData(newData);
+        message.success("Delete completed")
+      }
+    })
+  }
   const columns: ColumnsType<Contest> = [
     {
       title: "Mã cuộc thi",
@@ -108,21 +223,18 @@ export default function ContestManagement() {
     {
       title: "Thao tác",
       key: "action",
-      render: () => (
+      render: (_, contest) => (
         <Space>
           <Button type="link" size="small">
             Sửa
           </Button>
-          <Button type="link" size="small" danger>
+          <Button type="link" size="small" danger onClick={() => RemoveContest(contest.code)}>
             Xóa
           </Button>
         </Space>
       ),
     },
   ];
-
-  const data: Contest[] = [];
-
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -139,6 +251,7 @@ export default function ContestManagement() {
             icon={<PlusOutlined />}
             size="large"
             className="bg-blue-950 font-bold text-blue-300 hover:bg-gray-950"
+            onClick={() => setShowCreateContest(true)}
           >
             Tạo cuộc thi mới
           </Button>
@@ -160,7 +273,14 @@ export default function ContestManagement() {
             scroll={{ x: 1000 }}
           />
         </div>
+        {showCreateContest && (
+            <div className="flex flex-col items-center justify-center w-full">
+              <CreateContest></CreateContest>
+              <Button variant="link" className="w-80" onClick={()  => setShowCreateContest(false)}>Đóng</Button>
+            </div>
+        )}
       </div>
     </div>
   );
 }
+
