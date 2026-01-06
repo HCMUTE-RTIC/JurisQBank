@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { getSession } from 'next-auth/react';
 
@@ -16,10 +15,10 @@ api.interceptors.request.use(
     // Note: getSession only works client-side. 
     // For server-side, we pass headers manually.
     if (typeof window !== 'undefined') {
-        const session = await getSession();
-        if (session?.user?.accessToken) {
-            config.headers['Authorization'] = `Bearer ${session.user.accessToken}`;
-        }
+      const session = await getSession();
+      if (session?.user?.accessToken) {
+        config.headers['Authorization'] = `Bearer ${session.user.accessToken}`;
+      }
     }
     return config;
   },

@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { signOut } from "next-auth/react";
-
 export default function AdminDashboard() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
