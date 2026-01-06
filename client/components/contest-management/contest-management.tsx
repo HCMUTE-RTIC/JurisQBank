@@ -12,7 +12,6 @@ import {
   message,
   Modal,
   DatePicker,
-  Card,
 } from "antd";
 import type { Dayjs } from "dayjs";
 import {
@@ -55,10 +54,17 @@ const getStatusColor = (status?: ContestStatus) => {
   return "default";
 };
 
+interface CreateContestFormValues {
+  name: string;
+  code: string;
+  description?: string;
+  duration: [Dayjs, Dayjs];
+}
+
 interface CreateContestFormProps {
   visible: boolean;
   onCancel: () => void;
-  onSubmit: (values: any) => void;
+  onSubmit: (values: CreateContestFormValues) => void;
 }
 
 const CreateContestModal: React.FC<CreateContestFormProps> = ({
@@ -160,7 +166,7 @@ export default function ContestManagement() {
     },
   ]);
 
-  const handleCreateContest = (values: any) => {
+  const handleCreateContest = (values: CreateContestFormValues) => {
     const newContest: Contest = {
       key: Date.now().toString(),
       code: values.code,

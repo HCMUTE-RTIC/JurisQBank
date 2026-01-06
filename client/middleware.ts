@@ -1,13 +1,13 @@
 
 import { auth } from "@/lib/auth"
- 
+
 export default auth((req) => {
   // Simplest middleware: just protect everything by default or selective?
   // For now, let's just log or basic check. 
   // NextAuth v5 middleware is essentially a wrapper.
 
   const pathname = req.nextUrl.pathname
-  
+
   const isLoggedIn = !!req.auth?.user
   const hasUpdatedInfo = !!req.auth?.user?.unit
   const isAdmin = !!req.auth?.user?.role
@@ -16,8 +16,6 @@ export default auth((req) => {
   const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard')
 
   const isOnAdmin = pathname.startsWith("/admin")
-
-  const isOnAuth = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register')
 
   if (isLoggedIn && isAdmin && !isOnAdmin) {
     return Response.redirect(new URL('/admin/dashboard', req.nextUrl))
