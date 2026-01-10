@@ -5,6 +5,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 from core.models.exams import Contest
+from core.models.exams import Question
 
 User = get_user_model()
 
@@ -84,3 +85,37 @@ class ContestSerializer(serializers.ModelSerializer):
             'max_attempts','is_practice','status','settings','created_by','created_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
+
+#question
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = '__all__'
+
+    def validate_options(self, value):
+        """
+        Kiểm tra cấu trúc JSONB đầu vào
+        Kỳ vọng: List các object bao gồm {id, text, is_correct}
+        """
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Options phải là một danh sách (List).")
+        
+        if len(value) < 2:
+            raise serializers.ValidationError("Câu hỏi phải có ít nhất 2 lựa chọn.")
+
+        has_correct_answer = False
+        
+        for item in value:
+            
+            if 'id' not in item or 'text' not in item:
+                raise serializers.ValidationError("Mỗi option phải có key 'id' và 'text'.")
+            
+          
+            if item.get('is_correct') is True:
+                has_correct_answer = True
+
+       
+        if not has_correct_answer:
+            raise serializers.ValidationError("Phải có ít nhất một đáp án đúng (is_correct: true).")
+
+        return value

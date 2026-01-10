@@ -5,6 +5,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from core.models.exams import Contest
 from core.serializers import ContestSerializer
+from core.models.exams import Question
+from core.serializers import QuestionSerializer
+from rest_framework import viewsets, permissions, filters
 
 from .serializers import (
     LoginSerializer, 
@@ -139,4 +142,19 @@ class ContestUpdateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all().order_by('-created_at')
+    serializer_class = QuestionSerializer
+    # Chỉ Admin hoặc người tạo mới được sửa
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # Hỗ trợ filter/search để Admin dễ quản lý
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['content', 'topic'] # Cho phép tìm theo nội dung câu hỏi hoặc chủ đề
+    ordering_fields = ['difficulty', 'created_at']
+
+    def perform_create(self, serializer):
+        # Tự động gán người tạo là user đang login (vì model có field created_by)
+        serializer.save(created_by=self.request.user)
 
