@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
+    ContestQuestionViewSet,
     LoginView, 
     GoogleLoginView,
     QuestionViewSet, 
@@ -15,6 +16,7 @@ from .views import (
 #URL question
 router = DefaultRouter()
 router.register(r'questions', QuestionViewSet)
+router.register(r'contest-questions', ContestQuestionViewSet)
 
 urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),

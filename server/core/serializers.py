@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 from core.models.exams import Contest
 from core.models.exams import Question
+from core.models.exams import  ContestQuestion
 
 User = get_user_model()
 
@@ -119,3 +120,13 @@ class QuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Phải có ít nhất một đáp án đúng (is_correct: true).")
 
         return value
+ #ContestQuestion
+class ContestQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContestQuestion
+        fields = ['id', 'contest', 'question', 'point', 'order']
+        def validate_point(self, value):
+           if value <= 0:
+               raise serializers.ValidationError("Điểm số phải lớn hơn 0.")
+           return value
+       

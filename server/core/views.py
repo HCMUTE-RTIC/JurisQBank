@@ -8,7 +8,8 @@ from core.serializers import ContestSerializer
 from core.models.exams import Question
 from core.serializers import QuestionSerializer
 from rest_framework import viewsets, permissions, filters
-
+from core.models.exams import ContestQuestion
+from core.serializers import ContestQuestionSerializer
 from .serializers import (
     LoginSerializer, 
     GoogleLoginSerializer, 
@@ -142,7 +143,7 @@ class ContestUpdateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+#CRUD QUESTION   
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all().order_by('-created_at')
     serializer_class = QuestionSerializer
@@ -157,4 +158,13 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Tự động gán người tạo là user đang login (vì model có field created_by)
         serializer.save(created_by=self.request.user)
+
+#CRUD CONTEST-QUESTION
+class ContestQuestionViewSet(viewsets.ModelViewSet):
+    queryset = ContestQuestion.objects.all()
+    serializer_class = ContestQuestionSerializer
+
+
+
+
 
