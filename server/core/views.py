@@ -122,6 +122,17 @@ class ContestUpdateView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ContestSerializer
 
+    def get(self, request, contest_id):
+        try:
+            contest = Contest.objects.get(id=contest_id)
+        except Contest.DoesNotExist:
+            return Response(
+                {"detail": "Contest not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = self.get_serializer(contest)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def put(self, request, contest_id):
         try:
             contest = Contest.objects.get(id=contest_id)
@@ -139,4 +150,19 @@ class ContestUpdateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all().order_by('-created_at')
+    serializer_class = QuestionSerializer
+    # Chỉ Admin hoặc người tạo mới được sửa
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # Hỗ trợ filter/search để Admin dễ quản lý
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['content', 'topic'] # Cho phép tìm theo nội dung câu hỏi hoặc chủ đề
+    ordering_fields = ['difficulty', 'created_at']
+
+    def perform_create(self, serializer):
+        # Tự động gán người tạo là user đang login (vì model có field created_by)
+        serializer.save(created_by=self.request.user)
 
