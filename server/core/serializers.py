@@ -4,7 +4,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
-from core.models.exams import Contest
+from core.models.exams import Contest, Question
 
 User = get_user_model()
 
@@ -82,5 +82,15 @@ class ContestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title','description','thumbnail_url','start_time','end_time','duration_minutes','passing_score',
             'max_attempts','is_practice','status','settings','created_by','created_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at']
+
+#question
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = [
+            'id', 'content', 'question_type', 'difficulty', 
+            'topic', 'options', 'created_by', 'created_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
