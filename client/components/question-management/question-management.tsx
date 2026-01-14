@@ -96,7 +96,7 @@ const QuestionManagement = () => {
           dataIndex: 'type',
           key: 'type',
           render: (type) => {
-              let color = type === 'Trắc nghiệm' ? 'blue' : 'purple';
+              const color = type === 'Trắc nghiệm' ? 'blue' : 'purple';
               return <Tag color={color}>{type}</Tag>;
           },
         },
