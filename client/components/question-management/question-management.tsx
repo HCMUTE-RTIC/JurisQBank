@@ -26,6 +26,7 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { title } from 'process';
 
 const { Title, Text } = Typography;
 
@@ -57,7 +58,7 @@ const mockData: Question[] = [
     id: 'Q-002',
     key: '2',
     content: 'Mock question content for testing purposes 2',
-    type: 'Trắc nghiệm',
+    type: 'Tự luận',
     difficulty: 'Khó',
     category: 'Luật pháp',
     status: 'Bản nháp',
@@ -89,6 +90,15 @@ const QuestionManagement = () => {
         dataIndex: 'category',
         key: 'category',
         render: (cat) => <Tag color="geekblue">{cat}</Tag>,
+        },
+        {
+          title: 'Loại câu hỏi',
+          dataIndex: 'type',
+          key: 'type',
+          render: (type) => {
+              let color = type === 'Trắc nghiệm' ? 'blue' : 'purple';
+              return <Tag color={color}>{type}</Tag>;
+          },
         },
         {
         title: 'Độ khó',
