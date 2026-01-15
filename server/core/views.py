@@ -150,6 +150,18 @@ class ContestUpdateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, contest_id):
+        try:
+            contest = Contest.objects.get(id=contest_id)
+        except Contest.DoesNotExist:
+            return Response(
+                {"detail": "Contest not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        contest.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all().order_by('-created_at')
