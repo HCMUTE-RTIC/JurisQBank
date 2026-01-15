@@ -9,7 +9,7 @@ export default auth((req) => {
   const pathname = req.nextUrl.pathname
 
   const isLoggedIn = !!req.auth?.user
-  const hasUpdatedInfo = !!req.auth?.user?.unit
+  const hasUpdatedInfo = !!req.auth?.user?.unit || true // TEMPORARY: allow bypassing update-info for testing
   const isAdmin = !!req.auth?.user?.role
 
   const isOnUpdateInfo = pathname.startsWith("/update-info")
