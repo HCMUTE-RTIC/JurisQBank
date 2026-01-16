@@ -22,13 +22,13 @@ export function getMockQuestions(): ExamQuestion[] {
   return [
     {
       id: "q1",
-      content: "Câu 1: 1 + 1 = ?",
+      content: "Câu 1: 1 + 1 = dáàádfmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm?",
       questionType: "MCQ",
       difficulty: "easy",
       topic: "math",
       multiSelect: false,
       options: [
-        { key: "A", label: "1" },
+        { key: "A", label: "1dsaaâddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddđ" },
         { key: "B", label: "2" },
         { key: "C", label: "3" },
         { key: "D", label: "4" },
@@ -233,6 +233,34 @@ export function getMockQuestions(): ExamQuestion[] {
         { key: "B", label: "24" },
         { key: "C", label: "32" },
         { key: "D", label: "64" },
+      ],
+    },
+    {
+      id: "q16",
+      content: "Câu 16: Chọn tất cả phát biểu đúng về REST API.",
+      questionType: "MAQ",
+      difficulty: "medium",
+      topic: "web",
+      multiSelect: true,
+      options: [
+        { key: "A", label: "Resource thường được biểu diễn qua URL" },
+        { key: "B", label: "GET dùng để thay đổi dữ liệu" },
+        { key: "C", label: "POST thường dùng để tạo mới" },
+        { key: "D", label: "HTTP status code thể hiện kết quả xử lý" },
+      ],
+    },
+    {
+      id: "q17",
+      content: "Câu 17: Trong Python, cấu trúc dữ liệu nào là immutable?",
+      questionType: "MCQ",
+      difficulty: "easy",
+      topic: "python",
+      multiSelect: false,
+      options: [
+        { key: "A", label: "list" },
+        { key: "B", label: "dict" },
+        { key: "C", label: "set" },
+        { key: "D", label: "tuple" },
       ],
     },
   ];

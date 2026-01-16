@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { Check, Flag } from "lucide-react";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
@@ -110,6 +117,44 @@ function formatAnsweredCount(
   return count;
 }
 
+function getDifficultyMeta(
+  difficulty?: string
+): { label: string; className: string } | null {
+  const d = (difficulty ?? "").toLowerCase();
+
+  if (!d) return null;
+
+  if (d.includes("easy")) {
+    return {
+      label: "Dễ",
+      className:
+        "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (d.includes("medium")) {
+    return {
+      label: "Trung bình",
+      className:
+        "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (d.includes("hard")) {
+    return {
+      label: "Khó",
+      className:
+        "border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+    };
+  }
+
+  return {
+    label: difficulty ?? "",
+    className:
+      "border-border bg-muted text-foreground dark:border-border dark:bg-muted",
+  };
+}
+
 export function ExamRunner({
   contestId,
   forceMock = false,
@@ -130,6 +175,7 @@ export function ExamRunner({
         startedAtMs: Date.now(),
         currentIndex: 0,
         answers: {},
+        flagged: {},
       }),
     });
 
@@ -223,6 +269,62 @@ export function ExamRunner({
   );
   const currentQuestion = questions[currentIndex];
 
+  const [flashQuestionId, setFlashQuestionId] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  const triggerFlash = useCallback((questionId: string) => {
+    // Force restart animation even if the same question is clicked again.
+    setFlashQuestionId(null);
+    window.requestAnimationFrame(() => {
+      setFlashQuestionId(questionId);
+    });
+
+    if (flashTimerRef.current) {
+      window.clearTimeout(flashTimerRef.current);
+    }
+
+    flashTimerRef.current = window.setTimeout(() => {
+      setFlashQuestionId((prev) => (prev === questionId ? null : prev));
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) {
+        window.clearTimeout(flashTimerRef.current);
+      }
+    };
+  }, []);
+
+  const windowSize = 5;
+  const windowStart = useMemo(
+    () => Math.floor(currentIndex / windowSize) * windowSize,
+    [currentIndex]
+  );
+  const windowEnd = useMemo(
+    () => Math.min(questions.length - 1, windowStart + windowSize - 1),
+    [questions.length, windowStart]
+  );
+  const windowQuestions = useMemo(
+    () => questions.slice(windowStart, windowEnd + 1),
+    [questions, windowEnd, windowStart]
+  );
+
+  useEffect(() => {
+    const q = questions[currentIndex];
+    if (!q) return;
+
+    triggerFlash(q.id);
+
+    const el = document.getElementById(`exam-question-${q.id}`);
+    if (!el) return;
+
+    // Let the DOM paint first (esp. when switching between 5-question windows)
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [currentIndex, questions, triggerFlash, windowStart]);
+
   const answeredCount = useMemo(
     () => formatAnsweredCount(persisted.answers, questions),
     [persisted.answers, questions]
@@ -250,6 +352,15 @@ export function ExamRunner({
     [persisted, setPersisted]
   );
 
+  const goToIndex = useCallback(
+    (nextIndex: number) => {
+      const q = questions[nextIndex];
+      if (q) triggerFlash(q.id);
+      setCurrentIndex(nextIndex);
+    },
+    [questions, setCurrentIndex, triggerFlash]
+  );
+
   const setAnswer = useCallback(
     (questionId: string, next: string[]) => {
       setPersisted({
@@ -263,11 +374,17 @@ export function ExamRunner({
     [persisted, setPersisted]
   );
 
-  const clearAnswer = useCallback(
+  const toggleFlag = useCallback(
     (questionId: string) => {
-      const nextAnswers = { ...persisted.answers };
-      delete nextAnswers[questionId];
-      setPersisted({ ...persisted, answers: nextAnswers });
+      const current = persisted.flagged ?? {};
+      const next = {
+        ...current,
+        [questionId]: !current[questionId],
+      };
+      setPersisted({
+        ...persisted,
+        flagged: next,
+      });
     },
     [persisted, setPersisted]
   );
@@ -282,7 +399,9 @@ export function ExamRunner({
           : [...existing, optionKey];
         setAnswer(question.id, next);
       } else {
-        setAnswer(question.id, [optionKey]);
+        // Single-choice: clicking the selected option again will unselect it.
+        const has = existing.includes(optionKey);
+        setAnswer(question.id, has ? [] : [optionKey]);
       }
     },
     [persisted.answers, setAnswer]
@@ -368,21 +487,41 @@ export function ExamRunner({
     );
   }
 
-  const selectedKeys = currentQuestion
-    ? persisted.answers[currentQuestion.id] ?? []
-    : [];
-
   return (
-    <div className="min-h-screen w-full p-4 lg:p-6">
-      <div className="flex min-h-[calc(100vh-2rem)] flex-col gap-4 lg:min-h-[calc(100vh-3rem)]">
+    <div className="h-screen w-full overflow-hidden p-4 lg:p-6">
+      <div className="flex h-full flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm text-muted-foreground">
-              {dataMode === "mock" ? "Data: mock" : "Data: api"}
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+                  dataMode === "mock"
+                    ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+                )}
+              >
+                {dataMode === "mock" ? "Mock" : "API"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Tự lưu LocalStorage
+              </span>
             </div>
-            <h1 className="text-xl font-semibold">{contest.title}</h1>
-            <div className="text-sm text-muted-foreground">
-              Đã trả lời: {answeredCount}/{questions.length}
+
+            <h1 className="mt-1 text-xl font-semibold tracking-tight">
+              {contest.title}
+            </h1>
+
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Đã trả lời:</span>
+              <span className="font-semibold">
+                {answeredCount}/{questions.length}
+              </span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-muted-foreground">
+                Đã đặt cờ:{" "}
+                {Object.values(persisted.flagged ?? {}).filter(Boolean).length}
+              </span>
             </div>
           </div>
 
@@ -413,65 +552,146 @@ export function ExamRunner({
           </div>
         </div>
 
-        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-          <Card className="flex min-h-0 flex-col lg:col-span-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
+          <Card className="flex min-h-0 flex-col shadow-sm lg:col-span-3">
             <CardHeader>
-              <CardTitle>
-                Câu {currentIndex + 1}/{questions.length}
+              <CardTitle className="flex flex-wrap items-center gap-2 text-lg leading-relaxed">
+                <span>
+                  {`Đang hiển thị: ${windowStart + 1}-${windowEnd + 1}`}
+                </span>
               </CardTitle>
-              <CardDescription>
-                {currentQuestion.topic
-                  ? `Chủ đề: ${currentQuestion.topic}`
-                  : ""}
-              </CardDescription>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 space-y-4 overflow-auto">
-              <div className="whitespace-pre-wrap text-base">
-                {currentQuestion.content}
-              </div>
+              {windowQuestions.map((q, localIdx) => {
+                const idx = windowStart + localIdx;
+                const flash = q.id === flashQuestionId;
+                const selected = persisted.answers[q.id] ?? [];
+                const meta = getDifficultyMeta(q.difficulty);
+                const isFlagged = Boolean((persisted.flagged ?? {})[q.id]);
 
-              <div className="space-y-2">
-                {currentQuestion.options.map((opt) => {
-                  const checked = selectedKeys.includes(opt.key);
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() => onSelectOption(currentQuestion, opt.key)}
-                      className={cn(
-                        "w-full rounded-lg border px-4 py-3 text-left transition",
-                        checked
-                          ? "border-primary bg-primary/10"
-                          : "border-input hover:bg-accent"
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={cn(
-                            "mt-0.5 h-5 w-5 shrink-0 rounded-sm border",
-                            checked
-                              ? "border-primary bg-primary"
-                              : "border-input"
-                          )}
-                        />
-                        <div>
-                          <div className="font-mono text-sm text-muted-foreground">
-                            {opt.key}
-                          </div>
-                          <div className="text-sm">{opt.label}</div>
+                return (
+                  <div
+                    key={q.id}
+                    id={`exam-question-${q.id}`}
+                    className={cn(
+                      "relative scroll-mt-4 rounded-xl border-2 border-border bg-gradient-to-b from-card to-muted/10 p-4 shadow-sm",
+                      flash && "will-change-[border-color,box-shadow]"
+                    )}
+                    style={
+                      flash
+                        ? {
+                            animation:
+                              "exam-question-border-flash 2s ease-in-out 1",
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary/40 via-amber-400/30 to-emerald-400/30" />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-base font-semibold">
+                          Câu {idx + 1}
                         </div>
+                        {meta ? (
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+                              meta.className
+                            )}
+                          >
+                            {meta.label}
+                          </span>
+                        ) : null}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
+
+                      <div className="flex items-center gap-2">
+                        {q.topic ? (
+                          <div
+                            className="max-w-[22rem] truncate text-sm text-muted-foreground"
+                            title={q.topic}
+                          >
+                            Chủ đề: {q.topic}
+                          </div>
+                        ) : null}
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleFlag(q.id)}
+                          className={cn(
+                            "transition-colors",
+                            isFlagged
+                              ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Flag
+                            className={cn(
+                              "size-4",
+                              isFlagged && "fill-current"
+                            )}
+                          />
+                          {isFlagged ? "Bỏ cờ" : "Đặt cờ"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 whitespace-pre-wrap break-words text-lg leading-relaxed [overflow-wrap:anywhere]">
+                      {q.content}
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {q.options.map((opt) => {
+                        const checked = selected.includes(opt.key);
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => onSelectOption(q, opt.key)}
+                            className={cn(
+                              "w-full rounded-xl border px-4 py-4 text-left transition-colors",
+                              checked
+                                ? "border-primary bg-primary/10 shadow-sm"
+                                : "border-input hover:bg-accent/60"
+                            )}
+                          >
+                            <div className="flex min-w-0 items-start gap-3">
+                              <div
+                                className={cn(
+                                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border transition-colors",
+                                  checked
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-input bg-background"
+                                )}
+                              >
+                                {checked ? <Check className="h-4 w-4" /> : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="whitespace-nowrap font-mono text-sm font-semibold text-muted-foreground">
+                                  {opt.key}
+                                </div>
+                                <div className="whitespace-pre-wrap break-words text-base leading-relaxed [overflow-wrap:anywhere]">
+                                  {opt.label}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
 
-            <CardFooter className="flex flex-wrap justify-between gap-2">
+            <CardFooter className="flex flex-wrap justify-end gap-2">
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                  onClick={() =>
+                    goToIndex(Math.max(0, currentIndex - windowSize))
+                  }
                   disabled={currentIndex === 0}
                 >
                   Trước
@@ -479,8 +699,8 @@ export function ExamRunner({
                 <Button
                   variant="outline"
                   onClick={() =>
-                    setCurrentIndex(
-                      Math.min(questions.length - 1, currentIndex + 1)
+                    goToIndex(
+                      Math.min(questions.length - 1, currentIndex + windowSize)
                     )
                   }
                   disabled={currentIndex >= questions.length - 1}
@@ -488,20 +708,10 @@ export function ExamRunner({
                   Sau
                 </Button>
               </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => clearAnswer(currentQuestion.id)}
-                  disabled={selectedKeys.length === 0}
-                >
-                  Xoá đáp án
-                </Button>
-              </div>
             </CardFooter>
           </Card>
 
-          <Card className="flex min-h-0 flex-col lg:col-span-1">
+          <Card className="flex min-h-0 flex-col shadow-sm lg:col-span-1">
             <CardHeader>
               <CardTitle>Danh sách câu</CardTitle>
               <CardDescription>
@@ -509,29 +719,65 @@ export function ExamRunner({
               </CardDescription>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 overflow-auto">
-              <div className="grid grid-cols-6 gap-2">
-                {questions.map((q, idx) => {
-                  const answered = (persisted.answers[q.id]?.length ?? 0) > 0;
-                  const active = idx === currentIndex;
-                  return (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => setCurrentIndex(idx)}
-                      className={cn(
-                        "h-10 rounded-md border text-sm",
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : answered
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-input hover:bg-accent"
-                      )}
-                      title={answered ? "Đã trả lời" : "Chưa trả lời"}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
+                    Đã trả lời
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-500/70" />
+                    Đặt cờ
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
+                    <span className="h-2 w-2 rounded-full bg-primary/70" />
+                    Đang chọn
+                  </span>
+                </div>
+
+                <div className="rounded-xl border bg-muted/20 p-2">
+                  <div className="grid grid-cols-6 gap-2">
+                    {questions.map((q, idx) => {
+                      const answered =
+                        (persisted.answers[q.id]?.length ?? 0) > 0;
+                      const active = idx === currentIndex;
+                      const inWindow = idx >= windowStart && idx <= windowEnd;
+                      const flagged = Boolean((persisted.flagged ?? {})[q.id]);
+                      return (
+                        <button
+                          key={q.id}
+                          type="button"
+                          onClick={() => goToIndex(idx)}
+                          className={cn(
+                            "h-10 rounded-md border text-sm transition-colors",
+                            active
+                              ? flagged
+                                ? "border-amber-400 bg-amber-200 text-amber-950"
+                                : "border-primary bg-primary text-primary-foreground"
+                              : flagged
+                              ? "border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/20 dark:hover:bg-amber-950/35"
+                              : answered
+                              ? "border-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/35"
+                              : "border-input hover:bg-accent",
+                            inWindow && !active && "ring-2 ring-primary/25"
+                          )}
+                          title={
+                            flagged
+                              ? "Đã đặt cờ"
+                              : answered
+                              ? "Đã trả lời"
+                              : "Chưa trả lời"
+                          }
+                        >
+                          <span className="flex items-center justify-center gap-1">
+                            <span>{idx + 1}</span>
+                            {flagged ? <Flag className="size-3" /> : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-wrap gap-2">
@@ -557,6 +803,24 @@ export function ExamRunner({
           </Card>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes exam-question-border-flash {
+          0% {
+            border-color: var(--border);
+            box-shadow: 0 0 0 0 transparent;
+          }
+          50% {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px
+              color-mix(in oklch, var(--primary) 25%, transparent);
+          }
+          100% {
+            border-color: var(--border);
+            box-shadow: 0 0 0 0 transparent;
+          }
+        }
+      `}</style>
     </div>
   );
 }

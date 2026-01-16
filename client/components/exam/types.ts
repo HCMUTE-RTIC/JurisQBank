@@ -41,4 +41,7 @@ export type ExamPersistedStateV1 = {
   startedAtMs: number;
   currentIndex: number;
   answers: Record<string, string[]>; // questionId -> option keys (length 1 for single-choice)
+
+  /** Optional to keep backward compatibility with older saved states. */
+  flagged?: Record<string, boolean>; // questionId -> flagged?
 };
