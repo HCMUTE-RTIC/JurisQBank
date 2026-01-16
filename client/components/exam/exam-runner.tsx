@@ -490,8 +490,8 @@ export function ExamRunner({
   return (
     <div className="h-screen w-full overflow-hidden p-4 lg:p-6">
       <div className="flex h-full flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
@@ -525,24 +525,24 @@ export function ExamRunner({
             </div>
           </div>
 
-          <div className="flex flex-1 items-center gap-3 lg:justify-end">
-            <div className="flex flex-1 justify-center">
-              <div className="flex flex-col items-center">
-                <div className="text-base font-semibold text-muted-foreground">
-                  Thời gian còn lại
-                </div>
-                <CountdownTimer
-                  endsAt={endsAt}
-                  onExpire={() => handleSubmit("timeout")}
-                  warnAtSeconds={60}
-                  dangerAtSeconds={10}
-                  durationSeconds={durationSeconds}
-                  boxed
-                  className="text-xl"
-                />
+          <div className="flex justify-center">
+            <div className="flex flex-col items-center">
+              <div className="text-base font-semibold text-muted-foreground">
+                Thời gian còn lại
               </div>
+              <CountdownTimer
+                endsAt={endsAt}
+                onExpire={() => handleSubmit("timeout")}
+                warnAtSeconds={60}
+                dangerAtSeconds={10}
+                durationSeconds={durationSeconds}
+                boxed
+                className="text-xl"
+              />
             </div>
+          </div>
 
+          <div className="flex justify-end">
             <Button
               variant="destructive"
               onClick={() => void handleSubmit("manual")}
