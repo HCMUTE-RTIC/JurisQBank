@@ -9,11 +9,14 @@ import React, {
 } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Check, Flag } from "lucide-react";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { ExamHeader } from "@/components/exam/ExamHeader";
+import { ExamQuestionCard } from "@/components/exam/ExamQuestionCard";
+import { QuestionNavigator } from "@/components/exam/QuestionNavigator";
 import {
   Card,
   CardContent,
@@ -23,10 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import {
-  CountdownTimer,
-  computeEndsAtMs,
-} from "@/components/exam/countdown-timer";
+import { computeEndsAtMs } from "@/components/exam/countdown-timer";
 
 import type {
   Contest,
@@ -90,8 +90,8 @@ function mapApiQuestion(raw: Record<string, unknown>): ExamQuestion {
     : undefined;
   const multiSelect = Boolean(
     questionType?.toLowerCase().includes("multiple") ||
-      questionType?.toLowerCase().includes("maq") ||
-      questionType?.toLowerCase().includes("multi")
+    questionType?.toLowerCase().includes("maq") ||
+    questionType?.toLowerCase().includes("multi"),
   );
 
   return {
@@ -107,7 +107,7 @@ function mapApiQuestion(raw: Record<string, unknown>): ExamQuestion {
 
 function formatAnsweredCount(
   answers: Record<string, string[]>,
-  questions: ExamQuestion[]
+  questions: ExamQuestion[],
 ) {
   let count = 0;
   for (const q of questions) {
@@ -117,42 +117,54 @@ function formatAnsweredCount(
   return count;
 }
 
-function getDifficultyMeta(
-  difficulty?: string
-): { label: string; className: string } | null {
-  const d = (difficulty ?? "").toLowerCase();
+function findFirstUnansweredIndex(
+  answers: Record<string, string[]>,
+  questions: ExamQuestion[],
+): number | null {
+  for (let i = 0; i < questions.length; i += 1) {
+    const q = questions[i];
+    const selected = answers[q.id];
+    if (!selected || selected.length === 0) return i;
+  }
+  return null;
+}
 
-  if (!d) return null;
+function pickRandomUnique<T>(items: T[], count: number): T[] {
+  if (count <= 0) return [];
+  if (count >= items.length) return [...items];
+  const copy = [...items];
+  // Fisher–Yates shuffle (partial is fine, but full is ok here)
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
 
-  if (d.includes("easy")) {
-    return {
-      label: "Dễ",
-      className:
-        "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
-    };
+function buildRandomAnswersPatch(params: {
+  questions: ExamQuestion[];
+  existing: Record<string, string[]>;
+}): Record<string, string[]> {
+  const { questions, existing } = params;
+  const next: Record<string, string[]> = { ...existing };
+
+  for (const q of questions) {
+    const current = existing[q.id] ?? [];
+    if (current.length > 0) continue;
+
+    const optionKeys = q.options.map((o) => o.key).filter(Boolean);
+    if (optionKeys.length === 0) continue;
+
+    if (q.multiSelect) {
+      const maxPick = Math.min(3, optionKeys.length);
+      const pickCount = 1 + Math.floor(Math.random() * maxPick);
+      next[q.id] = pickRandomUnique(optionKeys, pickCount);
+    } else {
+      next[q.id] = [optionKeys[Math.floor(Math.random() * optionKeys.length)]!];
+    }
   }
 
-  if (d.includes("medium")) {
-    return {
-      label: "Trung bình",
-      className:
-        "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
-    };
-  }
-
-  if (d.includes("hard")) {
-    return {
-      label: "Khó",
-      className:
-        "border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
-    };
-  }
-
-  return {
-    label: difficulty ?? "",
-    className:
-      "border-border bg-muted text-foreground dark:border-border dark:bg-muted",
-  };
+  return next;
 }
 
 export function ExamRunner({
@@ -183,6 +195,19 @@ export function ExamRunner({
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [dataMode, setDataMode] = useState<"api" | "mock">("api");
   const [loading, setLoading] = useState(true);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [confirmSubmitting, setConfirmSubmitting] = useState(false);
+  const [confirmRandomOpen, setConfirmRandomOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const closeSubmitConfirm = useCallback(() => setConfirmSubmitOpen(false), []);
+  const closeRandomConfirm = useCallback(() => setConfirmRandomOpen(false), []);
+
+  const persistedRef = useRef(persisted);
+  useEffect(() => {
+    persistedRef.current = persisted;
+  }, [persisted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,7 +260,7 @@ export function ExamRunner({
 
         const mapped = qData
           .filter(
-            (x): x is Record<string, unknown> => !!x && typeof x === "object"
+            (x): x is Record<string, unknown> => !!x && typeof x === "object",
           )
           .map(mapApiQuestion)
           .filter((q) => q.id && q.content);
@@ -265,9 +290,8 @@ export function ExamRunner({
 
   const currentIndex = Math.min(
     Math.max(0, persisted.currentIndex),
-    Math.max(0, questions.length - 1)
+    Math.max(0, questions.length - 1),
   );
-  const currentQuestion = questions[currentIndex];
 
   const [flashQuestionId, setFlashQuestionId] = useState<string | null>(null);
   const flashTimerRef = useRef<number | null>(null);
@@ -299,15 +323,15 @@ export function ExamRunner({
   const windowSize = 5;
   const windowStart = useMemo(
     () => Math.floor(currentIndex / windowSize) * windowSize,
-    [currentIndex]
+    [currentIndex],
   );
   const windowEnd = useMemo(
     () => Math.min(questions.length - 1, windowStart + windowSize - 1),
-    [questions.length, windowStart]
+    [questions.length, windowStart],
   );
   const windowQuestions = useMemo(
     () => questions.slice(windowStart, windowEnd + 1),
-    [questions, windowEnd, windowStart]
+    [questions, windowEnd, windowStart],
   );
 
   useEffect(() => {
@@ -327,12 +351,17 @@ export function ExamRunner({
 
   const answeredCount = useMemo(
     () => formatAnsweredCount(persisted.answers, questions),
-    [persisted.answers, questions]
+    [persisted.answers, questions],
+  );
+
+  const flaggedCount = useMemo(
+    () => Object.values(persisted.flagged ?? {}).filter(Boolean).length,
+    [persisted.flagged],
   );
 
   const durationSeconds = useMemo(
     () => Math.max(0, (contest?.duration_minutes ?? 30) * 60),
-    [contest?.duration_minutes]
+    [contest?.duration_minutes],
   );
 
   const endsAt = useMemo(() => {
@@ -349,7 +378,7 @@ export function ExamRunner({
         currentIndex: nextIndex,
       });
     },
-    [persisted, setPersisted]
+    [persisted, setPersisted],
   );
 
   const goToIndex = useCallback(
@@ -358,7 +387,7 @@ export function ExamRunner({
       if (q) triggerFlash(q.id);
       setCurrentIndex(nextIndex);
     },
-    [questions, setCurrentIndex, triggerFlash]
+    [questions, setCurrentIndex, triggerFlash],
   );
 
   const setAnswer = useCallback(
@@ -371,7 +400,7 @@ export function ExamRunner({
         },
       });
     },
-    [persisted, setPersisted]
+    [persisted, setPersisted],
   );
 
   const toggleFlag = useCallback(
@@ -386,7 +415,7 @@ export function ExamRunner({
         flagged: next,
       });
     },
-    [persisted, setPersisted]
+    [persisted, setPersisted],
   );
 
   const onSelectOption = useCallback(
@@ -404,11 +433,63 @@ export function ExamRunner({
         setAnswer(question.id, has ? [] : [optionKey]);
       }
     },
-    [persisted.answers, setAnswer]
+    [persisted.answers, setAnswer],
   );
+
+  const applyRandomAnswers = useCallback(() => {
+    if (submitting || submitted) return;
+
+    const current = persistedRef.current;
+    const nextAnswers = buildRandomAnswersPatch({
+      questions,
+      existing: current.answers,
+    });
+
+    setPersisted({
+      ...current,
+      answers: nextAnswers,
+    });
+
+    const firstUnansweredAfter = findFirstUnansweredIndex(
+      nextAnswers,
+      questions,
+    );
+
+    toast({
+      title: "Đã chọn ngẫu nhiên đáp án",
+      description:
+        firstUnansweredAfter === null
+          ? "Tất cả câu đã có đáp án."
+          : "Một số câu vẫn chưa có đáp án (thiếu options).",
+    });
+
+    if (firstUnansweredAfter !== null) {
+      goToIndex(firstUnansweredAfter);
+    }
+  }, [goToIndex, questions, setPersisted, submitted, submitting, toast]);
+
+  const handleRandomAnswersClick = useCallback(() => {
+    if (submitting || submitted) return;
+    setConfirmSubmitOpen(false);
+    setConfirmRandomOpen(true);
+  }, [submitted, submitting]);
+
+  const confirmRandomAnswers = useCallback(() => {
+    closeRandomConfirm();
+    applyRandomAnswers();
+  }, [applyRandomAnswers, closeRandomConfirm]);
 
   const handleSubmit = useCallback(
     async (reason: "manual" | "timeout") => {
+      if (submitting || submitted) return;
+
+      if (reason === "timeout") {
+        // If time's up, always submit immediately (even if unfinished).
+        closeRandomConfirm();
+        closeSubmitConfirm();
+      }
+
+      setSubmitting(true);
       toast({
         title: reason === "timeout" ? "Hết giờ" : "Đã nộp bài",
         description:
@@ -420,10 +501,51 @@ export function ExamRunner({
       // For now: keep answers (user can refresh). If you want to clear after submit, uncomment:
       // removeLocalStorageItem(storageKey)
 
-      console.log("submit", { contestId, reason, answers: persisted.answers });
+      try {
+        const latestAnswers = persistedRef.current.answers;
+        console.log("submit", {
+          contestId,
+          reason,
+          answers: latestAnswers,
+        });
+        setSubmitted(true);
+      } finally {
+        setSubmitting(false);
+      }
     },
-    [contestId, dataMode, persisted.answers, toast]
+    [contestId, dataMode, submitted, submitting, toast],
   );
+
+  const handleManualSubmitClick = useCallback(() => {
+    const firstUnanswered = findFirstUnansweredIndex(
+      persisted.answers,
+      questions,
+    );
+
+    if (firstUnanswered !== null) {
+      toast({
+        title: "Bạn chưa làm hết",
+        description: `Chuyển tới câu chưa trả lời đầu tiên (câu ${
+          firstUnanswered + 1
+        }).`,
+      });
+      goToIndex(firstUnanswered);
+      return;
+    }
+
+    setConfirmRandomOpen(false);
+    setConfirmSubmitOpen(true);
+  }, [goToIndex, persisted.answers, questions, toast]);
+
+  const confirmManualSubmit = useCallback(async () => {
+    setConfirmSubmitting(true);
+    try {
+      await handleSubmit("manual");
+      closeSubmitConfirm();
+    } finally {
+      setConfirmSubmitting(false);
+    }
+  }, [closeSubmitConfirm, handleSubmit]);
 
   if (status === "loading" || loading) {
     return (
@@ -488,75 +610,29 @@ export function ExamRunner({
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden p-4 lg:p-6">
-      <div className="flex h-full flex-col gap-4">
-        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-                  dataMode === "mock"
-                    ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-                )}
-              >
-                {dataMode === "mock" ? "Mock" : "API"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Tự lưu LocalStorage
-              </span>
-            </div>
-
-            <h1 className="mt-1 text-xl font-semibold tracking-tight">
-              {contest.title}
-            </h1>
-
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Đã trả lời:</span>
-              <span className="font-semibold">
-                {answeredCount}/{questions.length}
-              </span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-muted-foreground">
-                Đã đặt cờ:{" "}
-                {Object.values(persisted.flagged ?? {}).filter(Boolean).length}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            <div className="flex flex-col items-center">
-              <div className="text-base font-semibold text-muted-foreground">
-                Thời gian còn lại
-              </div>
-              <CountdownTimer
-                endsAt={endsAt}
-                onExpire={() => handleSubmit("timeout")}
-                warnAtSeconds={60}
-                dangerAtSeconds={10}
-                durationSeconds={durationSeconds}
-                boxed
-                className="text-xl"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              variant="destructive"
-              onClick={() => void handleSubmit("manual")}
-            >
-              Nộp bài
-            </Button>
-          </div>
-        </div>
+    <div className="min-h-dvh w-full overflow-hidden bg-gradient-to-b from-background via-background to-muted/30 p-4 lg:p-6">
+      <div className="flex h-[calc(100dvh-2rem)] flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
+        <ExamHeader
+          contest={contest}
+          dataMode={dataMode}
+          answeredCount={answeredCount}
+          total={questions.length}
+          flaggedCount={flaggedCount}
+          endsAt={endsAt}
+          durationSeconds={durationSeconds}
+          onTimeout={() => handleSubmit("timeout")}
+          onSubmitClick={handleManualSubmitClick}
+          submitting={submitting}
+          submitted={submitted}
+        />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-          <Card className="flex min-h-0 flex-col shadow-sm lg:col-span-3">
+          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/10 bg-card/70 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/55 lg:col-span-3">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
             <CardHeader>
-              <CardTitle className="flex flex-wrap items-center gap-2 text-lg leading-relaxed">
-                <span>
+              <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg leading-relaxed">
+                <span>{`Câu ${currentIndex + 1}/${questions.length}`}</span>
+                <span className="text-sm font-normal text-muted-foreground">
                   {`Đang hiển thị: ${windowStart + 1}-${windowEnd + 1}`}
                 </span>
               </CardTitle>
@@ -566,121 +642,19 @@ export function ExamRunner({
                 const idx = windowStart + localIdx;
                 const flash = q.id === flashQuestionId;
                 const selected = persisted.answers[q.id] ?? [];
-                const meta = getDifficultyMeta(q.difficulty);
                 const isFlagged = Boolean((persisted.flagged ?? {})[q.id]);
 
                 return (
-                  <div
+                  <ExamQuestionCard
                     key={q.id}
-                    id={`exam-question-${q.id}`}
-                    className={cn(
-                      "relative scroll-mt-4 rounded-xl border-2 border-border bg-gradient-to-b from-card to-muted/10 p-4 shadow-sm",
-                      flash && "will-change-[border-color,box-shadow]"
-                    )}
-                    style={
-                      flash
-                        ? {
-                            animation:
-                              "exam-question-border-flash 2s ease-in-out 1",
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary/40 via-amber-400/30 to-emerald-400/30" />
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-base font-semibold">
-                          Câu {idx + 1}
-                        </div>
-                        {meta ? (
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-                              meta.className
-                            )}
-                          >
-                            {meta.label}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {q.topic ? (
-                          <div
-                            className="max-w-[22rem] truncate text-sm text-muted-foreground"
-                            title={q.topic}
-                          >
-                            Chủ đề: {q.topic}
-                          </div>
-                        ) : null}
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleFlag(q.id)}
-                          className={cn(
-                            "transition-colors",
-                            isFlagged
-                              ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Flag
-                            className={cn(
-                              "size-4",
-                              isFlagged && "fill-current"
-                            )}
-                          />
-                          {isFlagged ? "Bỏ cờ" : "Đặt cờ"}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 whitespace-pre-wrap break-words text-lg leading-relaxed [overflow-wrap:anywhere]">
-                      {q.content}
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      {q.options.map((opt) => {
-                        const checked = selected.includes(opt.key);
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => onSelectOption(q, opt.key)}
-                            className={cn(
-                              "w-full rounded-xl border px-4 py-4 text-left transition-colors",
-                              checked
-                                ? "border-primary bg-primary/10 shadow-sm"
-                                : "border-input hover:bg-accent/60"
-                            )}
-                          >
-                            <div className="flex min-w-0 items-start gap-3">
-                              <div
-                                className={cn(
-                                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border transition-colors",
-                                  checked
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-input bg-background"
-                                )}
-                              >
-                                {checked ? <Check className="h-4 w-4" /> : null}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="whitespace-nowrap font-mono text-sm font-semibold text-muted-foreground">
-                                  {opt.key}
-                                </div>
-                                <div className="whitespace-pre-wrap break-words text-base leading-relaxed [overflow-wrap:anywhere]">
-                                  {opt.label}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                    question={q}
+                    index={idx}
+                    selected={selected}
+                    flagged={isFlagged}
+                    flash={flash}
+                    onSelectOption={onSelectOption}
+                    onToggleFlag={toggleFlag}
+                  />
                 );
               })}
             </CardContent>
@@ -700,7 +674,7 @@ export function ExamRunner({
                   variant="outline"
                   onClick={() =>
                     goToIndex(
-                      Math.min(questions.length - 1, currentIndex + windowSize)
+                      Math.min(questions.length - 1, currentIndex + windowSize),
                     )
                   }
                   disabled={currentIndex >= questions.length - 1}
@@ -711,96 +685,42 @@ export function ExamRunner({
             </CardFooter>
           </Card>
 
-          <Card className="flex min-h-0 flex-col shadow-sm lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Danh sách câu</CardTitle>
-              <CardDescription>
-                Bấm để chuyển câu (tự lưu LocalStorage)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-auto">
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
-                    Đã trả lời
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
-                    <span className="h-2 w-2 rounded-full bg-amber-500/70" />
-                    Đặt cờ
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
-                    <span className="h-2 w-2 rounded-full bg-primary/70" />
-                    Đang chọn
-                  </span>
-                </div>
-
-                <div className="rounded-xl border bg-muted/20 p-2">
-                  <div className="grid grid-cols-6 gap-2">
-                    {questions.map((q, idx) => {
-                      const answered =
-                        (persisted.answers[q.id]?.length ?? 0) > 0;
-                      const active = idx === currentIndex;
-                      const inWindow = idx >= windowStart && idx <= windowEnd;
-                      const flagged = Boolean((persisted.flagged ?? {})[q.id]);
-                      return (
-                        <button
-                          key={q.id}
-                          type="button"
-                          onClick={() => goToIndex(idx)}
-                          className={cn(
-                            "h-10 rounded-md border text-sm transition-colors",
-                            active
-                              ? flagged
-                                ? "border-amber-400 bg-amber-200 text-amber-950"
-                                : "border-primary bg-primary text-primary-foreground"
-                              : flagged
-                              ? "border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/20 dark:hover:bg-amber-950/35"
-                              : answered
-                              ? "border-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/35"
-                              : "border-input hover:bg-accent",
-                            inWindow && !active && "ring-2 ring-primary/25"
-                          )}
-                          title={
-                            flagged
-                              ? "Đã đặt cờ"
-                              : answered
-                              ? "Đã trả lời"
-                              : "Chưa trả lời"
-                          }
-                        >
-                          <span className="flex items-center justify-center gap-1">
-                            <span>{idx + 1}</span>
-                            {flagged ? <Flag className="size-3" /> : null}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  removeLocalStorageItem(storageKey);
-                  window.location.reload();
-                }}
-              >
-                Reset
-              </Button>
-              {dataMode === "mock" ? (
-                <Button asChild variant="secondary">
-                  <Link href={`/exam/${contestId}`}>Thử API</Link>
+          <QuestionNavigator
+            questions={questions}
+            currentIndex={currentIndex}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            answers={persisted.answers}
+            flagged={persisted.flagged ?? {}}
+            onGoToIndex={goToIndex}
+            footer={
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    removeLocalStorageItem(storageKey);
+                    window.location.reload();
+                  }}
+                >
+                  Reset
                 </Button>
-              ) : (
-                <Button asChild variant="secondary">
-                  <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
+                {dataMode === "mock" ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleRandomAnswersClick}
+                    disabled={submitting || submitted}
+                  >
+                    Random đáp án
+                  </Button>
+                ) : (
+                  <Button asChild variant="secondary">
+                    <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
+                  </Button>
+                )}
+              </>
+            }
+          />
         </div>
       </div>
 
@@ -821,6 +741,28 @@ export function ExamRunner({
           }
         }
       `}</style>
+
+      <ConfirmModal
+        open={confirmRandomOpen}
+        title="Xác nhận chọn ngẫu nhiên"
+        description="Bạn có muốn hệ thống tự chọn ngẫu nhiên đáp án cho các câu bạn chưa làm không?"
+        confirmText="Có, chọn ngẫu nhiên"
+        confirmVariant="secondary"
+        onClose={closeRandomConfirm}
+        onConfirm={confirmRandomAnswers}
+      />
+
+      <ConfirmModal
+        open={confirmSubmitOpen}
+        title="Xác nhận nộp bài"
+        description="Bạn có chắc chắn muốn nộp bài không? Sau khi nộp, bạn có thể không sửa đáp án nữa."
+        confirmText={confirmSubmitting ? "Đang nộp..." : "Có, nộp bài"}
+        confirmVariant="destructive"
+        confirmDisabled={confirmSubmitting}
+        cancelDisabled={confirmSubmitting}
+        onClose={closeSubmitConfirm}
+        onConfirm={() => void confirmManualSubmit()}
+      />
     </div>
   );
 }
