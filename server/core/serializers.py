@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from core.models.exams import Contest
 from core.models.exams import Question
 from core.models.exams import  ContestQuestion
+import random
 
 User = get_user_model()
 
@@ -129,4 +130,34 @@ class ContestQuestionSerializer(serializers.ModelSerializer):
            if value <= 0:
                raise serializers.ValidationError("Điểm số phải lớn hơn 0.")
            return value
-       
+# exam cho user      
+class ExamPaperSerializer(serializers.ModelSerializer):
+ 
+    question_id = serializers.ReadOnlyField(source='question.id')
+    content = serializers.ReadOnlyField(source='question.content')
+    question_type = serializers.ReadOnlyField(source='question.question_type')
+    options = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContestQuestion
+        # Chỉ trả về những thông tin cần thiết để làm bài
+        fields = ['id', 'question_id', 'content', 'question_type', 'point', 'options']
+
+    def get_options(self, obj):
+        # Lấy danh sách options gốc từ bảng Question
+        original_options = obj.question.options 
+        
+        # Nếu options không phải list (ví dụ null), trả về list rỗng
+        if not isinstance(original_options, list):
+            return []
+
+        # Tạo list mới, chỉ giữ lại 'id' và 'text', LOẠI BỎ 'is_correct'
+        safe_options = [
+            {"id": opt.get("id"), "text": opt.get("text")} 
+            for opt in original_options
+        ]
+        
+        # (Tuỳ chọn) Trộn ngẫu nhiên thứ tự các đáp án A, B, C, D luôn
+        random.shuffle(safe_options)
+        
+        return safe_options

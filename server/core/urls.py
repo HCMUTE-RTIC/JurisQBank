@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     ContestQuestionViewSet,
+    ContestStartExamView,
     LoginView, 
     GoogleLoginView,
     QuestionViewSet, 
@@ -29,6 +30,7 @@ urlpatterns = [
     #URL contest
     path('contests/', ContestListCreateView.as_view(), name='contest-list-create'),
     path('contests/<uuid:contest_id>/', ContestUpdateView.as_view(), name='contest-update'),
+    path('contests/<uuid:contest_id>/start-exam/', ContestStartExamView.as_view(), name='contest-start-exam'),
 ]
 
 urlpatterns += router.urls

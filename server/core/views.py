@@ -1,3 +1,4 @@
+import random
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -9,7 +10,9 @@ from core.models.exams import Question
 from core.serializers import QuestionSerializer
 from rest_framework import viewsets, permissions, filters
 from core.models.exams import ContestQuestion
-from core.serializers import ContestQuestionSerializer
+from core.serializers import ContestQuestionSerializer, ExamPaperSerializer
+from rest_framework.decorators import action 
+
 from .serializers import (
     LoginSerializer, 
     GoogleLoginSerializer, 
@@ -142,6 +145,31 @@ class ContestUpdateView(GenericAPIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ContestStartExamView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ExamPaperSerializer # Khai báo để Swagger nhận diện
+
+    def get(self, request, contest_id):
+        """
+        Lấy danh sách câu hỏi, trộn ngẫu nhiên và che đáp án.
+        """
+        # 1. Query lấy câu hỏi thuộc contest_id này
+        questions = list(ContestQuestion.objects.filter(contest_id=contest_id).select_related('question'))
+
+        if not questions:
+            return Response(
+                {"detail": "Đề thi này chưa có câu hỏi nào."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 2. Trộn câu hỏi (Shuffle)
+        random.shuffle(questions)
+
+        # 3. Serialize dữ liệu (Che đáp án)
+        serializer = self.get_serializer(questions, many=True)
+        
         return Response(serializer.data, status=status.HTTP_200_OK)
 #CRUD QUESTION   
 class QuestionViewSet(viewsets.ModelViewSet):
