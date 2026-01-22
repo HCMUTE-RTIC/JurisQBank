@@ -200,9 +200,33 @@ export function ExamRunner({
   const [confirmRandomOpen, setConfirmRandomOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   const closeSubmitConfirm = useCallback(() => setConfirmSubmitOpen(false), []);
   const closeRandomConfirm = useCallback(() => setConfirmRandomOpen(false), []);
+
+  // Anti-cheat: Tab Switch Detection
+  const visibilityChange = useCallback(() => {
+    if (document.hidden) {
+      setVisible(false);
+      toast({
+        title: "Cảnh báo",
+        variant: "destructive",
+        description:
+          "Bạn đã chuyển tab hoặc ẩn cửa sổ trình duyệt. Vui lòng quay lại tab này để tiếp tục làm bài.",
+      });
+    } else {
+      setVisible(true);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    document.addEventListener("visibilitychange", visibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", visibilityChange);
+    };
+  }, [visibilityChange]);
+
 
   const persistedRef = useRef(persisted);
   useEffect(() => {
