@@ -153,7 +153,7 @@ const QuestionManagement = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <Title level={2} className="mb-1!">Ngân hàng câu hỏi</Title>
+          <Title level={2} className="mb-1">Ngân hàng câu hỏi</Title>
           <Text type="secondary">Quản lý và tổ chức các câu hỏi thi của bạn</Text>
         </div>
         <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => {router.push("/admin/question-management/create-question")}} className="shadow-md h-11 px-6 rounded-lg">
