@@ -7,7 +7,7 @@ export default function AdminSidebar() {
             <a href="/home" className="font-bold text-2xl cursor-pointer m-4">JurisQBank</a>
             <a href="/admin/dashboard" className="text-black pl-4 pt-3 hover:bg-gray-200  w-60 h-12.5 min-h-12">Dashboard</a>
             <a href="/admin/contest-management" className="text-black pl-4 pt-3 hover:bg-gray-200 w-60 h-12.5 min-h-12">Quản lý cuộc thi</a>
-            <a href="" className="text-black pl-4 pt-3 hover:bg-gray-200 w-60 h-12.5 min-h-12">Import</a>
+            <a href="/admin/question-management" className="text-black pl-4 pt-3 hover:bg-gray-200 w-60 h-12.5 min-h-12">Ngân hàng câu hỏi</a>
             <a href="" onClick={() => signOut()} className="text-black pl-4 pt-3 hover:bg-gray-200 w-60 h-12.5 min-h-12">Sign out</a>
         </div>
     )
