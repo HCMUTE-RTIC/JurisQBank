@@ -9,17 +9,24 @@ export default auth((req) => {
   const pathname = req.nextUrl.pathname
 
   const isLoggedIn = !!req.auth?.user
-  const hasUpdatedInfo = !!req.auth?.user?.unit
+  const hasUpdatedInfo = !!req.auth?.user?.unit || true // TEMPORARY: allow bypassing update-info for testing
   const isAdmin = !!req.auth?.user?.role
 
   const isOnUpdateInfo = pathname.startsWith("/update-info")
   const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard')
 
-  const isOnAdmin = pathname.startsWith("/admin")
-
+  // const isOnAdmin = pathname.startsWith("/admin")
   if (isOnAdmin && !isAdmin) {
     return Response.redirect(new URL('/dashboard', req.nextUrl))
   }
+  // if (isLoggedIn && isAdmin && !isOnAdmin) {
+  //   return Response.redirect(new URL('/admin/dashboard', req.nextUrl))
+  // }
+
+  // if (isOnAdmin && !isAdmin) {
+  //   return Response.redirect(new URL('/dashboard', req.nextUrl))
+  // }
+
 
   if (isOnDashboard && !isLoggedIn) {
     return Response.redirect(new URL('/login', req.nextUrl))
