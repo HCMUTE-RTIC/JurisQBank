@@ -281,7 +281,7 @@ export default function ContestManagement() {
     <div className="relative min-h-screen w-full overflow-hidden bg-background p-6">
       <DotPattern
         className={cn(
-          "[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]",
+          "mask-[radial-gradient(600px_circle_at_center,white,transparent)]",
         )}
       />
 
