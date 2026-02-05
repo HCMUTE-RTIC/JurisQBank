@@ -16,7 +16,9 @@ export default auth((req) => {
   const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard')
 
   // const isOnAdmin = pathname.startsWith("/admin")
-
+  if (isOnAdmin && !isAdmin) {
+    return Response.redirect(new URL('/dashboard', req.nextUrl))
+  }
   // if (isLoggedIn && isAdmin && !isOnAdmin) {
   //   return Response.redirect(new URL('/admin/dashboard', req.nextUrl))
   // }
@@ -24,6 +26,7 @@ export default auth((req) => {
   // if (isOnAdmin && !isAdmin) {
   //   return Response.redirect(new URL('/dashboard', req.nextUrl))
   // }
+
 
   if (isOnDashboard && !isLoggedIn) {
     return Response.redirect(new URL('/login', req.nextUrl))
