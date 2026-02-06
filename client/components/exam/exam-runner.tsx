@@ -180,6 +180,9 @@ export function ExamRunner({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Review mode: read-only, show correct/wrong colors
+  const reviewMode = searchParams?.get("review") === "1";
+
   const buildInitialState = useCallback(
     (): ExamPersistedStateV1 => ({
       version: 1,
@@ -229,8 +232,9 @@ export function ExamRunner({
     storageKey,
   ]);
 
-  // Anti-cheat: Tab Switch Detection
+  // Anti-cheat: Tab Switch Detection (skip in review mode)
   const visibilityChange = useCallback(() => {
+    if (reviewMode) return;
     if (document.hidden) {
       setVisible(false);
       toast({
@@ -242,7 +246,7 @@ export function ExamRunner({
     } else {
       setVisible(true);
     }
-  }, [toast]);
+  }, [reviewMode, toast]);
 
   useEffect(() => {
     document.addEventListener("visibilitychange", visibilityChange);
@@ -595,6 +599,10 @@ export function ExamRunner({
     }
   }, [closeSubmitConfirm, handleSubmit]);
 
+  const handleDoneClick = useCallback(() => {
+    router.push(`/contests/result?contestId=${contestId}`);
+  }, [contestId, router]);
+
   if (status === "loading" || loading) {
     return (
       <div className="mx-auto max-w-5xl p-6">
@@ -672,6 +680,8 @@ export function ExamRunner({
           onSubmitClick={handleManualSubmitClick}
           submitting={submitting}
           submitted={submitted}
+          reviewMode={reviewMode}
+          onDoneClick={handleDoneClick}
         />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
@@ -702,6 +712,7 @@ export function ExamRunner({
                     flash={flash}
                     onSelectOption={onSelectOption}
                     onToggleFlag={toggleFlag}
+                    reviewMode={reviewMode}
                   />
                 );
               })}
@@ -741,32 +752,35 @@ export function ExamRunner({
             answers={persisted.answers}
             flagged={persisted.flagged ?? {}}
             onGoToIndex={goToIndex}
+            reviewMode={reviewMode}
             footer={
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    removeLocalStorageItem(storageKey);
-                    window.location.reload();
-                  }}
-                >
-                  Reset
-                </Button>
-                {dataMode === "mock" ? (
+              reviewMode ? null : (
+                <>
                   <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleRandomAnswersClick}
-                    disabled={submitting || submitted}
+                    variant="outline"
+                    onClick={() => {
+                      removeLocalStorageItem(storageKey);
+                      window.location.reload();
+                    }}
                   >
-                    Random đáp án
+                    Reset
                   </Button>
-                ) : (
-                  <Button asChild variant="secondary">
-                    <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
-                  </Button>
-                )}
-              </>
+                  {dataMode === "mock" ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleRandomAnswersClick}
+                      disabled={submitting || submitted}
+                    >
+                      Random đáp án
+                    </Button>
+                  ) : (
+                    <Button asChild variant="secondary">
+                      <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
+                    </Button>
+                  )}
+                </>
+              )
             }
           />
         </div>
