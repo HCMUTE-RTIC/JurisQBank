@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
@@ -178,19 +178,25 @@ export function ExamRunner({
   const { data: session, status } = useSession();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const buildInitialState = useCallback(
+    (): ExamPersistedStateV1 => ({
+      version: 1,
+      startedAtMs: Date.now(),
+      currentIndex: 0,
+      answers: {},
+      flagged: {},
+    }),
+    [],
+  );
 
   const storageKey = useMemo(() => `exam:${contestId}:v1`, [contestId]);
 
   const { state: persisted, setState: setPersisted } =
     useLocalStorageJsonState<ExamPersistedStateV1>({
       key: storageKey,
-      initial: () => ({
-        version: 1,
-        startedAtMs: Date.now(),
-        currentIndex: 0,
-        answers: {},
-        flagged: {},
-      }),
+      initial: buildInitialState,
     });
 
   const [contest, setContest] = useState<Contest | null>(null);
@@ -206,6 +212,22 @@ export function ExamRunner({
 
   const closeSubmitConfirm = useCallback(() => setConfirmSubmitOpen(false), []);
   const closeRandomConfirm = useCallback(() => setConfirmRandomOpen(false), []);
+
+  useEffect(() => {
+    const reset = searchParams?.get("reset");
+    if (reset !== "1") return;
+
+    removeLocalStorageItem(storageKey);
+    setPersisted(buildInitialState());
+    router.replace(`/exam/${contestId}`);
+  }, [
+    buildInitialState,
+    contestId,
+    router,
+    searchParams,
+    setPersisted,
+    storageKey,
+  ]);
 
   // Anti-cheat: Tab Switch Detection
   const visibilityChange = useCallback(() => {
@@ -534,7 +556,7 @@ export function ExamRunner({
           answers: latestAnswers,
         });
         setSubmitted(true);
-        router.push("/contests/result");
+        router.push(`/contests/result?contestId=${contestId}`);
       } finally {
         setSubmitting(false);
       }
