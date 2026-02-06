@@ -145,7 +145,13 @@ export default function ResultPage() {
                 </div>
               ) : null}
               {showViewAnswersButton ? (
-                <Button size="large" icon={<EyeOutlined />}>
+                <Button
+                  size="large"
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    router.push(`/exam/${contestData.id}?review=1`)
+                  }
+                >
                   Xem đáp án chi tiết
                 </Button>
               ) : null}

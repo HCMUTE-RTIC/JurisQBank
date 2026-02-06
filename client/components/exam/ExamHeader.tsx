@@ -24,6 +24,9 @@ export type ExamHeaderProps = {
   onSubmitClick: () => void;
   submitting: boolean;
   submitted: boolean;
+  /** Review mode: hide timer, show "Xong" button instead of submit */
+  reviewMode?: boolean;
+  onDoneClick?: () => void;
 };
 
 export function ExamHeader({
@@ -38,6 +41,8 @@ export function ExamHeader({
   onSubmitClick,
   submitting,
   submitted,
+  reviewMode = false,
+  onDoneClick,
 }: ExamHeaderProps) {
   const progressPercent =
     total > 0 ? Math.round((answeredCount / total) * 100) : 0;
@@ -89,31 +94,52 @@ export function ExamHeader({
         </div>
 
         <div className="flex justify-center">
-          <div className="flex flex-col items-center">
-            <div className="text-lg font-bold text-foreground">
-              Thời gian còn lại
+          {reviewMode ? (
+            <div className="flex flex-col items-center">
+              <div className="text-lg font-bold text-foreground">
+                Chế độ xem đáp án
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Xem lại câu trả lời của bạn
+              </div>
             </div>
-            <CountdownTimer
-              endsAt={endsAt}
-              onExpire={onTimeout}
-              warnAtSeconds={60}
-              dangerAtSeconds={10}
-              durationSeconds={durationSeconds}
-              boxed
-              className={"text-xl" satisfies CountdownTimerProps["className"]}
-            />
-          </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <div className="text-lg font-bold text-foreground">
+                Thời gian còn lại
+              </div>
+              <CountdownTimer
+                endsAt={endsAt}
+                onExpire={onTimeout}
+                warnAtSeconds={60}
+                dangerAtSeconds={10}
+                durationSeconds={durationSeconds}
+                boxed
+                className={"text-xl" satisfies CountdownTimerProps["className"]}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            onClick={onSubmitClick}
-            disabled={submitting || submitted}
-            className="shadow-sm"
-          >
-            {submitted ? "Đã nộp" : submitting ? "Đang nộp..." : "Nộp bài"}
-          </Button>
+          {reviewMode ? (
+            <Button
+              variant="default"
+              onClick={onDoneClick}
+              className="shadow-sm"
+            >
+              Xong
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={onSubmitClick}
+              disabled={submitting || submitted}
+              className="shadow-sm"
+            >
+              {submitted ? "Đã nộp" : submitting ? "Đang nộp..." : "Nộp bài"}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, Flag } from "lucide-react";
+import { Check, Flag, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ export type ExamQuestionCardProps = {
   flash: boolean;
   onSelectOption: (question: ExamQuestion, optionKey: string) => void;
   onToggleFlag: (questionId: string) => void;
+  /** Review mode: read-only, show correct/wrong colors */
+  reviewMode?: boolean;
 };
 
 export function ExamQuestionCard({
@@ -64,6 +66,7 @@ export function ExamQuestionCard({
   flash,
   onSelectOption,
   onToggleFlag,
+  reviewMode = false,
 }: ExamQuestionCardProps) {
   const meta = getDifficultyMeta(question.difficulty);
 
@@ -109,21 +112,23 @@ export function ExamQuestionCard({
             </div>
           ) : null}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onToggleFlag(question.id)}
-            className={cn(
-              "transition-colors",
-              flagged
-                ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
-                : "hover:bg-muted",
-            )}
-          >
-            <Flag className={cn("size-4", flagged && "fill-current")} />
-            {flagged ? "Bỏ cờ" : "Đặt cờ"}
-          </Button>
+          {!reviewMode && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onToggleFlag(question.id)}
+              className={cn(
+                "transition-colors",
+                flagged
+                  ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+                  : "hover:bg-muted",
+              )}
+            >
+              <Flag className={cn("size-4", flagged && "fill-current")} />
+              {flagged ? "Bỏ cờ" : "Đặt cờ"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -134,21 +139,57 @@ export function ExamQuestionCard({
       <div className="mt-4 space-y-2">
         {question.options.map((opt) => {
           const checked = selected.includes(opt.key);
+          const isCorrect = opt.isCorrect === true;
           const indicatorClass = question.multiSelect
             ? "rounded-sm"
             : "rounded-full";
+
+          // Review mode styling
+          let optionClassName = "";
+          let indicatorClassName = "";
+          let indicatorIcon: React.ReactNode = null;
+
+          if (reviewMode) {
+            if (isCorrect) {
+              // Correct answer - always show green
+              optionClassName =
+                "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30";
+              indicatorClassName =
+                "border-emerald-500 bg-emerald-500 text-white";
+              indicatorIcon = <Check className="h-4 w-4" />;
+            } else if (checked && !isCorrect) {
+              // Wrong answer - user selected but incorrect
+              optionClassName = "border-red-500 bg-red-50 dark:bg-red-950/30";
+              indicatorClassName = "border-red-500 bg-red-500 text-white";
+              indicatorIcon = <X className="h-4 w-4" />;
+            } else {
+              // Not selected and not correct - neutral
+              optionClassName =
+                "border-input bg-gradient-to-b from-background/70 to-muted/20";
+              indicatorClassName = "border-input bg-background";
+            }
+          } else {
+            // Normal exam mode
+            optionClassName = checked
+              ? "border-primary/60 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/10 shadow-sm"
+              : "border-input bg-gradient-to-b from-background/70 to-muted/20 hover:bg-accent/60";
+            indicatorClassName = checked
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-input bg-background";
+            indicatorIcon = checked ? <Check className="h-4 w-4" /> : null;
+          }
 
           return (
             <button
               key={opt.key}
               type="button"
-              onClick={() => onSelectOption(question, opt.key)}
+              onClick={() => !reviewMode && onSelectOption(question, opt.key)}
               aria-pressed={checked}
+              disabled={reviewMode}
               className={cn(
                 "w-full rounded-xl border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                checked
-                  ? "border-primary/60 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/10 shadow-sm"
-                  : "border-input bg-gradient-to-b from-background/70 to-muted/20 hover:bg-accent/60",
+                optionClassName,
+                reviewMode && "cursor-default",
               )}
             >
               <div className="flex min-w-0 items-start gap-3">
@@ -156,12 +197,10 @@ export function ExamQuestionCard({
                   className={cn(
                     "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
                     indicatorClass,
-                    checked
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input bg-background",
+                    indicatorClassName,
                   )}
                 >
-                  {checked ? <Check className="h-4 w-4" /> : null}
+                  {indicatorIcon}
                 </div>
                 <div className="min-w-0">
                   <div className="whitespace-nowrap font-mono text-sm font-semibold text-muted-foreground">
