@@ -29,6 +29,12 @@ const { Text, Paragraph } = Typography;
 export default function ResultPage() {
   const router = useRouter();
   
+// mock contest and result data
+  const contestData = {
+    max_attempts: 4,
+    is_practice: true,
+  };
+  
   const resultData = {
     score: 85,          
     totalScore: 100,
@@ -38,9 +44,16 @@ export default function ResultPage() {
     skipped: 1,         
     timeTaken: '14 phút 30 giây',
     passingScore: 50,   
+    attemptsUsed: 1,
   };
 
   const isPassed = resultData.score >= resultData.passingScore;
+  const remainingAttempts = Math.max(
+    0,
+    contestData.max_attempts - resultData.attemptsUsed,
+  );
+  const showRetryButton = contestData.max_attempts > 1;
+  const showViewAnswersButton = contestData.is_practice === true;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center relative overflow-hidden">
@@ -89,12 +102,21 @@ export default function ResultPage() {
               <Button type="primary" size="large" icon={<HomeOutlined />} onClick={() => router.push('/')}>
                 Về trang chủ
               </Button>
-              <Button size="large" icon={<RedoOutlined />} onClick={() => window.location.reload()}>
-                Làm lại bài
-              </Button>
-              <Button size="large" icon={<EyeOutlined />}>
-                Xem đáp án chi tiết
-              </Button>
+              {showRetryButton ? (
+                <div className="flex flex-col items-center gap-1">
+                  <Button size="large" icon={<RedoOutlined />} onClick={() => window.location.reload()}>
+                    Làm lại bài
+                  </Button>
+                  <Text type="secondary" className="text-xs">
+                    Còn {remainingAttempts} lượt làm
+                  </Text>
+                </div>
+              ) : null}
+              {showViewAnswersButton ? (
+                <Button size="large" icon={<EyeOutlined />}>
+                  Xem đáp án chi tiết
+                </Button>
+              ) : null}
             </div>
           ]}
         >
