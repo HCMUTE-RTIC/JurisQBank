@@ -41,9 +41,11 @@ export function QuestionNavigator({
   reviewMode = false,
 }: QuestionNavigatorProps) {
   return (
-    <Card className="flex min-h-0 flex-col shadow-sm lg:col-span-1">
-      <CardHeader>
-        <CardTitle>Danh sách câu</CardTitle>
+    <Card className="relative flex min-h-0 flex-col shadow-lg shadow-primary/5 lg:col-span-1 border-primary/15 bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 ring-1 ring-white/10 dark:ring-white/5">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
+      <CardHeader className="relative">
+        <CardTitle className="text-lg font-semibold">Danh sách câu</CardTitle>
         <CardDescription>Bấm để chuyển câu</CardDescription>
       </CardHeader>
 
@@ -81,7 +83,7 @@ export function QuestionNavigator({
             </div>
           )}
 
-          <div className="rounded-xl border bg-muted/20 p-2">
+          <div className="rounded-xl border-2 border-dashed border-primary/20 bg-gradient-to-br from-muted/30 via-background to-muted/20 p-3">
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-6">
               {questions.map((q, idx) => {
                 const userAnswers = answers[q.id] ?? [];
@@ -153,16 +155,17 @@ export function QuestionNavigator({
                     type="button"
                     onClick={() => onGoToIndex(idx)}
                     className={cn(
-                      "h-10 rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      "h-10 rounded-lg border-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background hover:scale-105",
                       buttonClass,
-                      inWindow && !active && "ring-2 ring-primary/25",
+                      inWindow && !active && "ring-2 ring-primary/30 shadow-sm",
+                      active && "shadow-md scale-105",
                     )}
                     title={title}
                   >
                     <span className="flex items-center justify-center gap-1">
                       <span>{idx + 1}</span>
                       {isFlagged && !reviewMode ? (
-                        <Flag className="size-3" />
+                        <Flag className="size-3 fill-current" />
                       ) : null}
                     </span>
                   </button>

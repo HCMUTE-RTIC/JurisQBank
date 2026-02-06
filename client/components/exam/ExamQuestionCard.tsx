@@ -80,10 +80,10 @@ export function ExamQuestionCard({
     <div
       id={`exam-question-${question.id}`}
       className={cn(
-        "relative scroll-mt-4 rounded-xl border-2 bg-gradient-to-b from-card to-muted/20 p-4 shadow-sm transition-all duration-200",
+        "relative scroll-mt-4 rounded-2xl border-2 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-md transition-all duration-300",
         isActive
-          ? "border-primary/60 shadow-md ring-2 ring-primary/20"
-          : "border-border hover:border-primary/40 hover:shadow-md",
+          ? "border-primary/70 shadow-lg shadow-primary/10 ring-2 ring-primary/25 scale-[1.01]"
+          : "border-border/80 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
         flash && "will-change-[border-color,box-shadow]",
       )}
       style={
@@ -95,11 +95,22 @@ export function ExamQuestionCard({
       }
       onMouseDown={() => onActivate?.(index)}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary/40 via-amber-400/30 to-emerald-400/30" />
+      {/* Decorative gradient line */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-primary/50 via-violet-400/40 to-emerald-400/40" />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Subtle corner glow for active card */}
+      {isActive && (
+        <>
+          <div className="pointer-events-none absolute -left-2 -top-2 h-16 w-16 rounded-full bg-primary/20 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-2 -right-2 h-12 w-12 rounded-full bg-emerald-400/15 blur-xl" />
+        </>
+      )}
+
+      <div className="relative flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="text-base font-semibold">Câu {index + 1}</div>
+          <div className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary/15 to-violet-500/10 px-3 py-1.5 text-base font-bold text-primary dark:from-primary/25 dark:to-violet-500/15">
+            <span className="text-lg">Câu {index + 1}</span>
+          </div>
           {meta ? (
             <span
               className={cn(
@@ -142,11 +153,11 @@ export function ExamQuestionCard({
         </div>
       </div>
 
-      <div className="mt-3 whitespace-pre-wrap break-words text-lg leading-relaxed [overflow-wrap:anywhere]">
+      <div className="mt-3 whitespace-pre-wrap break-words text-lg leading-relaxed font-bold [overflow-wrap:anywhere]">
         {question.content}
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2 ">
         {question.options.map((opt) => {
           const checked = selected.includes(opt.key);
           const isCorrect = opt.isCorrect === true;
@@ -197,9 +208,10 @@ export function ExamQuestionCard({
               aria-pressed={checked}
               disabled={reviewMode}
               className={cn(
-                "w-full rounded-xl border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "group w-full rounded-xl border-2 px-4 py-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 optionClassName,
                 reviewMode && "cursor-default",
+                !reviewMode && !checked && "hover:scale-[1.01] hover:shadow-md",
               )}
             >
               <div className="flex min-w-0 items-start gap-3">

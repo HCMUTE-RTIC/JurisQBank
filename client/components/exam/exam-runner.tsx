@@ -643,8 +643,8 @@ export function ExamRunner({
   }
 
   return (
-    <div className="min-h-dvh w-full overflow-hidden bg-gradient-to-b from-background via-background to-muted/30 p-4 lg:p-6">
-      <div className="flex h-[calc(100dvh-2rem)] flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
+    <div className="relative min-h-dvh w-full overflow-hidden p-4 lg:p-6">
+      <div className="relative flex h-[calc(100dvh-2rem)] flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
         <ExamHeader
           contest={contest}
           dataMode={dataMode}
@@ -662,8 +662,9 @@ export function ExamRunner({
         />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/10 bg-card/70 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/55 lg:col-span-3">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/15 bg-card/80 shadow-lg shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 lg:col-span-3 ring-1 ring-white/10 dark:ring-white/5">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary/20 via-transparent to-emerald-500/20" />
             <CardHeader>
               <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg leading-relaxed">
                 <span>{`Câu ${currentIndex + 1}/${questions.length}`}</span>
