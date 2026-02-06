@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
@@ -176,6 +177,7 @@ export function ExamRunner({
 }) {
   const { data: session, status } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
 
   const storageKey = useMemo(() => `exam:${contestId}:v1`, [contestId]);
 
@@ -226,7 +228,6 @@ export function ExamRunner({
       document.removeEventListener("visibilitychange", visibilityChange);
     };
   }, [visibilityChange]);
-
 
   const persistedRef = useRef(persisted);
   useEffect(() => {
@@ -533,11 +534,12 @@ export function ExamRunner({
           answers: latestAnswers,
         });
         setSubmitted(true);
+        router.push("/contests/result");
       } finally {
         setSubmitting(false);
       }
     },
-    [contestId, dataMode, submitted, submitting, toast],
+    [contestId, dataMode, router, submitted, submitting, toast],
   );
 
   const handleManualSubmitClick = useCallback(() => {
