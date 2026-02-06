@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 
 import type { ExamQuestion } from "./types";
+import { checkAnswerResult } from "./utils";
 
 export type QuestionNavigatorProps = {
   questions: ExamQuestion[];
@@ -90,19 +91,10 @@ export function QuestionNavigator({
                 const isFlagged = Boolean(flagged[q.id]);
 
                 // Review mode: check if answer is correct
-                let isCorrectAnswer = false;
-                let isWrongAnswer = false;
-                if (reviewMode && answered) {
-                  const correctKeys = q.options
-                    .filter((o) => o.isCorrect === true)
-                    .map((o) => o.key);
-                  const userSorted = [...userAnswers].sort();
-                  const correctSorted = [...correctKeys].sort();
-                  isCorrectAnswer =
-                    userSorted.length === correctSorted.length &&
-                    userSorted.every((k, i) => k === correctSorted[i]);
-                  isWrongAnswer = !isCorrectAnswer;
-                }
+                const { isCorrect: isCorrectAnswer, isWrong: isWrongAnswer } =
+                  reviewMode
+                    ? checkAnswerResult(q, userAnswers)
+                    : { isCorrect: false, isWrong: false };
 
                 let buttonClass = "";
                 let title = "";

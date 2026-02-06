@@ -37,6 +37,7 @@ import type {
 } from "./types";
 import { getMockContest, getMockQuestions } from "./mock";
 import { removeLocalStorageItem, useLocalStorageJsonState } from "./storage";
+import { countAnswered, findFirstUnansweredIndex } from "./utils";
 
 function normalizeOptions(raw: unknown): ExamOption[] {
   if (Array.isArray(raw)) {
@@ -104,30 +105,6 @@ function mapApiQuestion(raw: Record<string, unknown>): ExamQuestion {
     options: normalizeOptions(raw?.options),
     multiSelect,
   };
-}
-
-function formatAnsweredCount(
-  answers: Record<string, string[]>,
-  questions: ExamQuestion[],
-) {
-  let count = 0;
-  for (const q of questions) {
-    const a = answers[q.id];
-    if (a && a.length > 0) count += 1;
-  }
-  return count;
-}
-
-function findFirstUnansweredIndex(
-  answers: Record<string, string[]>,
-  questions: ExamQuestion[],
-): number | null {
-  for (let i = 0; i < questions.length; i += 1) {
-    const q = questions[i];
-    const selected = answers[q.id];
-    if (!selected || selected.length === 0) return i;
-  }
-  return null;
 }
 
 function pickRandomUnique<T>(items: T[], count: number): T[] {
@@ -401,7 +378,7 @@ export function ExamRunner({
   }, [currentIndex, questions, triggerFlash, windowStart]);
 
   const answeredCount = useMemo(
-    () => formatAnsweredCount(persisted.answers, questions),
+    () => countAnswered(persisted.answers, questions),
     [persisted.answers, questions],
   );
 
@@ -713,6 +690,8 @@ export function ExamRunner({
                     onSelectOption={onSelectOption}
                     onToggleFlag={toggleFlag}
                     reviewMode={reviewMode}
+                    onActivate={goToIndex}
+                    isActive={idx === currentIndex}
                   />
                 );
               })}

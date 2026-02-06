@@ -56,6 +56,10 @@ export type ExamQuestionCardProps = {
   onToggleFlag: (questionId: string) => void;
   /** Review mode: read-only, show correct/wrong colors */
   reviewMode?: boolean;
+  /** Called when user interacts with this card (click, focus) */
+  onActivate?: (index: number) => void;
+  /** Whether this card is currently active/selected */
+  isActive?: boolean;
 };
 
 export function ExamQuestionCard({
@@ -67,6 +71,8 @@ export function ExamQuestionCard({
   onSelectOption,
   onToggleFlag,
   reviewMode = false,
+  onActivate,
+  isActive = false,
 }: ExamQuestionCardProps) {
   const meta = getDifficultyMeta(question.difficulty);
 
@@ -74,7 +80,10 @@ export function ExamQuestionCard({
     <div
       id={`exam-question-${question.id}`}
       className={cn(
-        "relative scroll-mt-4 rounded-xl border-2 border-border bg-gradient-to-b from-card to-muted/20 p-4 shadow-sm",
+        "relative scroll-mt-4 rounded-xl border-2 bg-gradient-to-b from-card to-muted/20 p-4 shadow-sm transition-all duration-200",
+        isActive
+          ? "border-primary/60 shadow-md ring-2 ring-primary/20"
+          : "border-border hover:border-primary/40 hover:shadow-md",
         flash && "will-change-[border-color,box-shadow]",
       )}
       style={
@@ -84,6 +93,7 @@ export function ExamQuestionCard({
             }
           : undefined
       }
+      onMouseDown={() => onActivate?.(index)}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary/40 via-amber-400/30 to-emerald-400/30" />
 
