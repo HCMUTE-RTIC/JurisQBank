@@ -40,8 +40,8 @@ const RichTextEditor = ({ value, onChange, placeholder }: EditorProps) => {
         onChange={onChange}
         modules={modules}
         formats={formats}
-        placeholder={placeholder || 'Write something amazing...'}
-        className="h-full"
+        placeholder={placeholder || 'Tạo một bộ câu hỏi mới...'}
+        className="h-full rounded-lg"
       />
     </div>
   );
