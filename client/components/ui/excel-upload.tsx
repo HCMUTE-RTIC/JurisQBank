@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, DragEvent } from 'react';
-import { Button, message, Typography, Tooltip } from 'antd';
+import { Button, message, Typography, Tooltip, Progress } from 'antd';
 import { 
   CloudUploadOutlined, 
   FileExcelOutlined, 
@@ -14,11 +14,14 @@ const { Title, Text } = Typography;
 
 interface ExcelUploaderProps {
   onUpload?: (files: File[]) => void;
+  onComplete?: () => void;
 }
 
-const ExcelUploaderComponent = ({ onUpload }: ExcelUploaderProps) => {
+const ExcelUploaderComponent = ({ onUpload, onComplete }: ExcelUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [fileList, setFileList] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Helpers ---
@@ -114,20 +117,53 @@ const ExcelUploaderComponent = ({ onUpload }: ExcelUploaderProps) => {
         return;
     }
     
-    if (onUpload) {
-      onUpload(fileList);
-    } else {
-        message.success(`Đang đăng tải ${fileList.length} file...`);
-        // console.log("Files to upload:", fileList); For testing
-    }
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    // TODO: Replace this with actual backend API call when it's ready
+    // Simulate upload progress for 5 seconds
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          
+          // Schedule state updates and callbacks after clearing interval
+          setTimeout(() => {
+            setIsUploading(false);
+            setFileList([]);
+            message.success('Đăng tải thành công!');
+            if (onUpload) {
+              onUpload(fileList);
+            }
+            if (onComplete) {
+              onComplete();
+            }
+          }, 0);
+          
+          return 100;
+        }
+        return prev + Math.random() * 30;
+      });
+    }, 500);
   };
 
   return (
     <div className="w-full max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-sm border border-gray-200">
       
+      {isUploading ? (
+        <div className="flex flex-col items-center justify-center py-8 gap-4">
+          <Text strong>Đang đăng tải...</Text>
+          <Progress
+            percent={Math.round(Math.min(uploadProgress, 100))}
+            status="active"
+            style={{ width: '100%' }}
+          />
+        </div>
+      ) : (
+        <>
       <div className="mb-4">
         <Title level={4} style={{ margin: 0 }}>Đăng tải file Excel</Title>
-        <Text type="secondary">Kéo và thả nhiều bảng tính ở đây.</Text>
+        <Text type="secondary">Kéo và thả file Excel ở đây.</Text>
       </div>
 
       {/* 1. DROP ZONE (Always Visible) */}
@@ -245,7 +281,8 @@ const ExcelUploaderComponent = ({ onUpload }: ExcelUploaderProps) => {
             </Text>
          </div>
       )}
-
+        </>
+      )}
     </div>
   );
 };

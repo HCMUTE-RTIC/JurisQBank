@@ -12,8 +12,10 @@ import {
   Typography, 
   Badge,
   Tooltip,
-  Dropdown
+  Dropdown,
+  Modal
 } from 'antd';
+import ExcelUploaderComponent from '../ui/excel-upload';
 import { 
   PlusOutlined, 
   SearchOutlined, 
@@ -67,8 +69,22 @@ const mockData: Question[] = [
 ];
 
 const QuestionManagement = () => {
-    const [searchText, setSearchText] = useState('');
+    const [, setSearchText] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
     const router = useRouter();
+
+    const handleUploadClick = () => {
+      setModalVisible(true);
+    };
+
+    const handleModalClose = () => {
+      setModalVisible(false);
+    };
+
+    const handleExcelUpload = (files: File[]) => {
+      console.log('Files to upload:', files);
+      // TODO: Implement upload logic
+    };
   // --- Table Columns Definition ---
     const columns: ColumnsType<Question> = [
         {
@@ -156,9 +172,14 @@ const QuestionManagement = () => {
           <Title level={2} className="mb-1">Ngân hàng câu hỏi</Title>
           <Text type="secondary">Quản lý và tổ chức các câu hỏi thi của bạn</Text>
         </div>
+        <div className='flex gap-4'>
+        <Button type="primary" color="green" size="large" icon={<PlusOutlined />} onClick={handleUploadClick} className="shadow-md h-11 px-6 rounded-lg bg-green-500 hover:bg-green-600">
+          Nhập file Excel
+        </Button>
         <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => {router.push("/admin/question-management/create-question")}} className="shadow-md h-11 px-6 rounded-lg">
           Tạo câu hỏi mới
         </Button>
+        </div>
       </div>
 
       {/* Stats Cards Section */}
@@ -199,6 +220,17 @@ const QuestionManagement = () => {
           rowSelection={{ type: 'checkbox' }}
         />
       </Card>
+
+      {/* Excel Upload Modal */}
+      <Modal
+        title="Đăng tải file Excel"
+        open={modalVisible}
+        onCancel={handleModalClose}
+        width={800}
+        footer={null}
+      >
+        <ExcelUploaderComponent onUpload={handleExcelUpload} onComplete={handleModalClose} />
+      </Modal>
     </div>
   );
 };
