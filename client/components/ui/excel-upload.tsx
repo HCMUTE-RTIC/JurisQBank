@@ -45,7 +45,7 @@ const ExcelUploaderComponent = ({ onUpload, onComplete }: ExcelUploaderProps) =>
     const isValidExt = /\.(xlsx|xls|csv)$/i.test(file.name);
 
     if (!isValidType && !isValidExt) {
-      message.error(`${file.name} is not a valid Excel or CSV file.`);
+      message.error(`${file.name} không phải là tệp Excel hoặc CSV hợp lệ.`);
       return false;
     }
 
