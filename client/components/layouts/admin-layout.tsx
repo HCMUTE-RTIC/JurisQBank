@@ -31,7 +31,7 @@ export default function AdminLayout({ children, sidebar } : AdminLayoutProps) {
         <aside>
             {sidebar}
         </aside>
-        <main>
+        <main className="flex-1">
             {children}
         </main>
     </div>

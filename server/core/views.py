@@ -12,6 +12,8 @@ from rest_framework import viewsets, permissions, filters
 from core.models.exams import ContestQuestion
 from core.serializers import ContestQuestionSerializer, ExamPaperSerializer
 from rest_framework.decorators import action 
+from core.models.exams import Contest, Question
+from core.serializers import ContestSerializer, QuestionSerializer
 
 from .serializers import (
     LoginSerializer, 
@@ -219,6 +221,33 @@ class QuestionViewSet(viewsets.ModelViewSet):
 class ContestQuestionViewSet(viewsets.ModelViewSet):
     queryset = ContestQuestion.objects.all()
     serializer_class = ContestQuestionSerializer
+    def delete(self, request, contest_id):
+        try:
+            contest = Contest.objects.get(id=contest_id)
+        except Contest.DoesNotExist:
+            return Response(
+                {"detail": "Contest not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        contest.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all().order_by('-created_at')
+    serializer_class = QuestionSerializer
+    # Chỉ Admin hoặc người tạo mới được sửa
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # Hỗ trợ filter/search để Admin dễ quản lý
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['content', 'topic'] # Cho phép tìm theo nội dung câu hỏi hoặc chủ đề
+    ordering_fields = ['difficulty', 'created_at']
+
+    def perform_create(self, serializer):
+        # Tự động gán người tạo là user đang login (vì model có field created_by)
+        serializer.save(created_by=self.request.user)
+
     def delete(self, request, contest_id):
         try:
             contest = Contest.objects.get(id=contest_id)

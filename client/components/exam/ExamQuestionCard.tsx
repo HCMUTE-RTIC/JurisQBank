@@ -1,0 +1,181 @@
+"use client";
+
+import React from "react";
+import { Check, Flag } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+import type { ExamQuestion } from "./types";
+
+function getDifficultyMeta(
+  difficulty?: string,
+): { label: string; className: string } | null {
+  const d = (difficulty ?? "").toLowerCase();
+
+  if (!d) return null;
+
+  if (d.includes("easy")) {
+    return {
+      label: "Dễ",
+      className:
+        "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
+    };
+  }
+
+  if (d.includes("medium")) {
+    return {
+      label: "Trung bình",
+      className:
+        "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+    };
+  }
+
+  if (d.includes("hard")) {
+    return {
+      label: "Khó",
+      className:
+        "border-red-200 bg-red-100 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+    };
+  }
+
+  return {
+    label: difficulty ?? "",
+    className:
+      "border-border bg-muted text-foreground dark:border-border dark:bg-muted",
+  };
+}
+
+export type ExamQuestionCardProps = {
+  question: ExamQuestion;
+  index: number; // 0-based global index
+  selected: string[];
+  flagged: boolean;
+  flash: boolean;
+  onSelectOption: (question: ExamQuestion, optionKey: string) => void;
+  onToggleFlag: (questionId: string) => void;
+};
+
+export function ExamQuestionCard({
+  question,
+  index,
+  selected,
+  flagged,
+  flash,
+  onSelectOption,
+  onToggleFlag,
+}: ExamQuestionCardProps) {
+  const meta = getDifficultyMeta(question.difficulty);
+
+  return (
+    <div
+      id={`exam-question-${question.id}`}
+      className={cn(
+        "relative scroll-mt-4 rounded-xl border-2 border-border bg-gradient-to-b from-card to-muted/20 p-4 shadow-sm",
+        flash && "will-change-[border-color,box-shadow]",
+      )}
+      style={
+        flash
+          ? {
+              animation: "exam-question-border-flash 2s ease-in-out 1",
+            }
+          : undefined
+      }
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary/40 via-amber-400/30 to-emerald-400/30" />
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-base font-semibold">Câu {index + 1}</div>
+          {meta ? (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+                meta.className,
+              )}
+            >
+              {meta.label}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {question.topic ? (
+            <div
+              className="max-w-[22rem] truncate text-sm text-muted-foreground"
+              title={question.topic}
+            >
+              Chủ đề: {question.topic}
+            </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onToggleFlag(question.id)}
+            className={cn(
+              "transition-colors",
+              flagged
+                ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+                : "hover:bg-muted",
+            )}
+          >
+            <Flag className={cn("size-4", flagged && "fill-current")} />
+            {flagged ? "Bỏ cờ" : "Đặt cờ"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-3 whitespace-pre-wrap break-words text-lg leading-relaxed [overflow-wrap:anywhere]">
+        {question.content}
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {question.options.map((opt) => {
+          const checked = selected.includes(opt.key);
+          const indicatorClass = question.multiSelect
+            ? "rounded-sm"
+            : "rounded-full";
+
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => onSelectOption(question, opt.key)}
+              aria-pressed={checked}
+              className={cn(
+                "w-full rounded-xl border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                checked
+                  ? "border-primary/60 bg-gradient-to-r from-primary/15 via-primary/10 to-emerald-500/10 shadow-sm"
+                  : "border-input bg-gradient-to-b from-background/70 to-muted/20 hover:bg-accent/60",
+              )}
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className={cn(
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
+                    indicatorClass,
+                    checked
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-background",
+                  )}
+                >
+                  {checked ? <Check className="h-4 w-4" /> : null}
+                </div>
+                <div className="min-w-0">
+                  <div className="whitespace-nowrap font-mono text-sm font-semibold text-muted-foreground">
+                    {opt.key}
+                  </div>
+                  <div className="whitespace-pre-wrap break-words text-base leading-relaxed [overflow-wrap:anywhere]">
+                    {opt.label}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

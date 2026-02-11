@@ -9,6 +9,7 @@ from core.models.exams import Question
 from core.models.exams import  ContestQuestion
 import random
 
+
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
@@ -161,3 +162,9 @@ class ExamPaperSerializer(serializers.ModelSerializer):
         random.shuffle(safe_options)
         
         return safe_options
+
+        fields = [
+            'id', 'content', 'question_type', 'difficulty', 
+            'topic', 'options', 'created_by', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at']
