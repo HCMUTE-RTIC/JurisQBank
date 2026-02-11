@@ -1,8 +1,17 @@
+import random
 from rest_framework import status, viewsets, permissions, filters
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from core.models.exams import Contest
+from core.serializers import ContestSerializer
+from core.models.exams import Question
+from core.serializers import QuestionSerializer
+from rest_framework import viewsets, permissions, filters
+from core.models.exams import ContestQuestion
+from core.serializers import ContestQuestionSerializer, ExamPaperSerializer
+from rest_framework.decorators import action 
 from core.models.exams import Contest, Question
 from core.serializers import ContestSerializer, QuestionSerializer
 
@@ -150,6 +159,94 @@ class ContestUpdateView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    def delete(self, request, contest_id):
+        """
+        Xóa đề thi theo ID
+        """
+        try:
+            contest = Contest.objects.get(id=contest_id)
+            contest.delete()
+            return Response(
+                {"detail": "Xóa thành công."}, 
+                status=status.HTTP_204_NO_CONTENT
+            )
+
+        except Contest.DoesNotExist:
+            return Response(
+                {"detail": "Không tìm thấy đề thi."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class ContestStartExamView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ExamPaperSerializer # Khai báo để Swagger nhận diện
+
+    def get(self, request, contest_id):
+        """
+        Lấy danh sách câu hỏi, trộn ngẫu nhiên và che đáp án.
+        """
+        # 1. Query lấy câu hỏi thuộc contest_id này
+        questions = list(ContestQuestion.objects.filter(contest_id=contest_id).select_related('question'))
+
+        if not questions:
+            return Response(
+                {"detail": "Đề thi này chưa có câu hỏi nào."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 2. Trộn câu hỏi (Shuffle)
+        random.shuffle(questions)
+
+        # 3. Serialize dữ liệu (Che đáp án)
+        serializer = self.get_serializer(questions, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+#CRUD QUESTION   
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all().order_by('-created_at')
+    serializer_class = QuestionSerializer
+    # Chỉ Admin hoặc người tạo mới được sửa
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # Hỗ trợ filter/search để Admin dễ quản lý
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['content', 'topic'] # Cho phép tìm theo nội dung câu hỏi hoặc chủ đề
+    ordering_fields = ['difficulty', 'created_at']
+
+    def perform_create(self, serializer):
+        # Tự động gán người tạo là user đang login (vì model có field created_by)
+        serializer.save(created_by=self.request.user)
+
+#CRUD CONTEST-QUESTION
+class ContestQuestionViewSet(viewsets.ModelViewSet):
+    queryset = ContestQuestion.objects.all()
+    serializer_class = ContestQuestionSerializer
+    def delete(self, request, contest_id):
+        try:
+            contest = Contest.objects.get(id=contest_id)
+        except Contest.DoesNotExist:
+            return Response(
+                {"detail": "Contest not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        contest.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all().order_by('-created_at')
+    serializer_class = QuestionSerializer
+    # Chỉ Admin hoặc người tạo mới được sửa
+    permission_classes = [permissions.IsAuthenticated] 
+    
+    # Hỗ trợ filter/search để Admin dễ quản lý
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['content', 'topic'] # Cho phép tìm theo nội dung câu hỏi hoặc chủ đề
+    ordering_fields = ['difficulty', 'created_at']
+
+    def perform_create(self, serializer):
+        # Tự động gán người tạo là user đang login (vì model có field created_by)
+        serializer.save(created_by=self.request.user)
 
     def delete(self, request, contest_id):
         try:

@@ -65,7 +65,8 @@ class ContestQuestion(models.Model):
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     point = models.DecimalField(max_digits=5, decimal_places=2, default=1.0)
-
+    order = models.IntegerField(default=0, help_text="Thứ tự câu hỏi")
     class Meta:
         db_table = 'contest_questions'
         unique_together = ('contest', 'question')
+       

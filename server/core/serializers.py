@@ -4,7 +4,11 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
-from core.models.exams import Contest, Question
+from core.models.exams import Contest
+from core.models.exams import Question
+from core.models.exams import  ContestQuestion
+import random
+
 
 User = get_user_model()
 
@@ -89,6 +93,76 @@ class ContestSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
+        fields = '__all__'
+
+    def validate_options(self, value):
+        """
+        Kiểm tra cấu trúc JSONB đầu vào
+        Kỳ vọng: List các object bao gồm {id, text, is_correct}
+        """
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Options phải là một danh sách (List).")
+        
+        if len(value) < 2:
+            raise serializers.ValidationError("Câu hỏi phải có ít nhất 2 lựa chọn.")
+
+        has_correct_answer = False
+        
+        for item in value:
+            
+            if 'id' not in item or 'text' not in item:
+                raise serializers.ValidationError("Mỗi option phải có key 'id' và 'text'.")
+            
+          
+            if item.get('is_correct') is True:
+                has_correct_answer = True
+
+       
+        if not has_correct_answer:
+            raise serializers.ValidationError("Phải có ít nhất một đáp án đúng (is_correct: true).")
+
+        return value
+ #ContestQuestion
+class ContestQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContestQuestion
+        fields = ['id', 'contest', 'question', 'point', 'order']
+        def validate_point(self, value):
+           if value <= 0:
+               raise serializers.ValidationError("Điểm số phải lớn hơn 0.")
+           return value
+# exam cho user      
+class ExamPaperSerializer(serializers.ModelSerializer):
+ 
+    question_id = serializers.ReadOnlyField(source='question.id')
+    content = serializers.ReadOnlyField(source='question.content')
+    question_type = serializers.ReadOnlyField(source='question.question_type')
+    options = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContestQuestion
+        # Chỉ trả về những thông tin cần thiết để làm bài
+        fields = ['id', 'question_id', 'content', 'question_type', 'point', 'options']
+
+    def get_options(self, obj):
+        # Lấy danh sách options gốc từ bảng Question
+        original_options = obj.question.options 
+        
+        # Nếu options không phải list (ví dụ null), trả về list rỗng
+        if not isinstance(original_options, list):
+            return []
+
+        # Tạo list mới, chỉ giữ lại 'id' và 'text', LOẠI BỎ 'is_correct'
+        safe_options = [
+            {"id": opt.get("id"), "text": opt.get("text")} 
+            for opt in original_options
+        ]
+        
+        # (Tuỳ chọn) Trộn ngẫu nhiên thứ tự các đáp án A, B, C, D luôn
+        random.shuffle(safe_options)
+        
+        return safe_options
+
         fields = [
             'id', 'content', 'question_type', 'difficulty', 
             'topic', 'options', 'created_by', 'created_at',
