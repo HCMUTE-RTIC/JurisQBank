@@ -24,6 +24,9 @@ export type ExamHeaderProps = {
   onSubmitClick: () => void;
   submitting: boolean;
   submitted: boolean;
+  /** Review mode: hide timer, show "Xong" button instead of submit */
+  reviewMode?: boolean;
+  onDoneClick?: () => void;
 };
 
 export function ExamHeader({
@@ -38,13 +41,17 @@ export function ExamHeader({
   onSubmitClick,
   submitting,
   submitted,
+  reviewMode = false,
+  onDoneClick,
 }: ExamHeaderProps) {
   const progressPercent =
     total > 0 ? Math.round((answeredCount / total) * 100) : 0;
 
   return (
-    <Card className="relative overflow-hidden shadow-md border-indigo-200/50 bg-gradient-to-b from-indigo-50/80 via-card to-card ring-1 ring-indigo-500/10 dark:border-indigo-900/40 dark:from-indigo-950/25 dark:ring-indigo-400/10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500/35 via-sky-400/25 to-emerald-400/25" />
+    <Card className="relative overflow-hidden shadow-lg shadow-indigo-500/10 border-indigo-200/60 bg-gradient-to-b from-sky-50/95 via-blue-100/70 to-indigo-100/60 ring-1 ring-indigo-500/15 backdrop-blur-xl dark:border-indigo-900/50 dark:from-sky-950/45 dark:via-indigo-950/35 dark:to-indigo-950/25 dark:ring-indigo-400/15 dark:shadow-indigo-500/5">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-indigo-500/50 via-sky-400/40 to-emerald-400/40" />
+      <div className="pointer-events-none absolute -left-24 -top-24 h-48 w-48 rounded-full bg-indigo-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 -bottom-16 h-32 w-32 rounded-full bg-emerald-400/10 blur-2xl" />
       <CardContent className="grid gap-4 p-4 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:p-5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -89,31 +96,52 @@ export function ExamHeader({
         </div>
 
         <div className="flex justify-center">
-          <div className="flex flex-col items-center">
-            <div className="text-lg font-bold text-foreground">
-              Thời gian còn lại
+          {reviewMode ? (
+            <div className="flex flex-col items-center">
+              <div className="text-lg font-bold text-foreground">
+                Chế độ xem đáp án
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Xem lại câu trả lời của bạn
+              </div>
             </div>
-            <CountdownTimer
-              endsAt={endsAt}
-              onExpire={onTimeout}
-              warnAtSeconds={60}
-              dangerAtSeconds={10}
-              durationSeconds={durationSeconds}
-              boxed
-              className={"text-xl" satisfies CountdownTimerProps["className"]}
-            />
-          </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <div className="text-lg font-bold text-foreground">
+                Thời gian còn lại
+              </div>
+              <CountdownTimer
+                endsAt={endsAt}
+                onExpire={onTimeout}
+                warnAtSeconds={60}
+                dangerAtSeconds={10}
+                durationSeconds={durationSeconds}
+                boxed
+                className={"text-xl" satisfies CountdownTimerProps["className"]}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            onClick={onSubmitClick}
-            disabled={submitting || submitted}
-            className="shadow-sm"
-          >
-            {submitted ? "Đã nộp" : submitting ? "Đang nộp..." : "Nộp bài"}
-          </Button>
+          {reviewMode ? (
+            <Button
+              variant="default"
+              onClick={onDoneClick}
+              className="shadow-sm"
+            >
+              Xong
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={onSubmitClick}
+              disabled={submitting || submitted}
+              className="shadow-sm"
+            >
+              {submitted ? "Đã nộp" : submitting ? "Đang nộp..." : "Nộp bài"}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

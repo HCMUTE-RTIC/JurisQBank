@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ import type {
 } from "./types";
 import { getMockContest, getMockQuestions } from "./mock";
 import { removeLocalStorageItem, useLocalStorageJsonState } from "./storage";
+import { countAnswered, findFirstUnansweredIndex } from "./utils";
 
 function normalizeOptions(raw: unknown): ExamOption[] {
   if (Array.isArray(raw)) {
@@ -105,30 +107,6 @@ function mapApiQuestion(raw: Record<string, unknown>): ExamQuestion {
   };
 }
 
-function formatAnsweredCount(
-  answers: Record<string, string[]>,
-  questions: ExamQuestion[],
-) {
-  let count = 0;
-  for (const q of questions) {
-    const a = answers[q.id];
-    if (a && a.length > 0) count += 1;
-  }
-  return count;
-}
-
-function findFirstUnansweredIndex(
-  answers: Record<string, string[]>,
-  questions: ExamQuestion[],
-): number | null {
-  for (let i = 0; i < questions.length; i += 1) {
-    const q = questions[i];
-    const selected = answers[q.id];
-    if (!selected || selected.length === 0) return i;
-  }
-  return null;
-}
-
 function pickRandomUnique<T>(items: T[], count: number): T[] {
   if (count <= 0) return [];
   if (count >= items.length) return [...items];
@@ -176,19 +154,29 @@ export function ExamRunner({
 }) {
   const { data: session, status } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Review mode: read-only, show correct/wrong colors
+  const reviewMode = searchParams?.get("review") === "1";
+
+  const buildInitialState = useCallback(
+    (): ExamPersistedStateV1 => ({
+      version: 1,
+      startedAtMs: Date.now(),
+      currentIndex: 0,
+      answers: {},
+      flagged: {},
+    }),
+    [],
+  );
 
   const storageKey = useMemo(() => `exam:${contestId}:v1`, [contestId]);
 
   const { state: persisted, setState: setPersisted } =
     useLocalStorageJsonState<ExamPersistedStateV1>({
       key: storageKey,
-      initial: () => ({
-        version: 1,
-        startedAtMs: Date.now(),
-        currentIndex: 0,
-        answers: {},
-        flagged: {},
-      }),
+      initial: buildInitialState,
     });
 
   const [contest, setContest] = useState<Contest | null>(null);
@@ -205,8 +193,25 @@ export function ExamRunner({
   const closeSubmitConfirm = useCallback(() => setConfirmSubmitOpen(false), []);
   const closeRandomConfirm = useCallback(() => setConfirmRandomOpen(false), []);
 
-  // Anti-cheat: Tab Switch Detection
+  useEffect(() => {
+    const reset = searchParams?.get("reset");
+    if (reset !== "1") return;
+
+    removeLocalStorageItem(storageKey);
+    setPersisted(buildInitialState());
+    router.replace(`/exam/${contestId}`);
+  }, [
+    buildInitialState,
+    contestId,
+    router,
+    searchParams,
+    setPersisted,
+    storageKey,
+  ]);
+
+  // Anti-cheat: Tab Switch Detection (skip in review mode)
   const visibilityChange = useCallback(() => {
+    if (reviewMode) return;
     if (document.hidden) {
       setVisible(false);
       toast({
@@ -218,7 +223,7 @@ export function ExamRunner({
     } else {
       setVisible(true);
     }
-  }, [toast]);
+  }, [reviewMode, toast]);
 
   useEffect(() => {
     document.addEventListener("visibilitychange", visibilityChange);
@@ -226,7 +231,6 @@ export function ExamRunner({
       document.removeEventListener("visibilitychange", visibilityChange);
     };
   }, [visibilityChange]);
-
 
   const persistedRef = useRef(persisted);
   useEffect(() => {
@@ -374,7 +378,7 @@ export function ExamRunner({
   }, [currentIndex, questions, triggerFlash, windowStart]);
 
   const answeredCount = useMemo(
-    () => formatAnsweredCount(persisted.answers, questions),
+    () => countAnswered(persisted.answers, questions),
     [persisted.answers, questions],
   );
 
@@ -533,11 +537,12 @@ export function ExamRunner({
           answers: latestAnswers,
         });
         setSubmitted(true);
+        router.push(`/contests/result?contestId=${contestId}`);
       } finally {
         setSubmitting(false);
       }
     },
-    [contestId, dataMode, submitted, submitting, toast],
+    [contestId, dataMode, router, submitted, submitting, toast],
   );
 
   const handleManualSubmitClick = useCallback(() => {
@@ -570,6 +575,10 @@ export function ExamRunner({
       setConfirmSubmitting(false);
     }
   }, [closeSubmitConfirm, handleSubmit]);
+
+  const handleDoneClick = useCallback(() => {
+    router.push(`/contests/result?contestId=${contestId}`);
+  }, [contestId, router]);
 
   if (status === "loading" || loading) {
     return (
@@ -634,8 +643,8 @@ export function ExamRunner({
   }
 
   return (
-    <div className="min-h-dvh w-full overflow-hidden bg-gradient-to-b from-background via-background to-muted/30 p-4 lg:p-6">
-      <div className="flex h-[calc(100dvh-2rem)] flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
+    <div className="relative min-h-dvh w-full overflow-hidden p-4 lg:p-6">
+      <div className="relative flex h-[calc(100dvh-2rem)] flex-col gap-4 lg:h-[calc(100dvh-3rem)]">
         <ExamHeader
           contest={contest}
           dataMode={dataMode}
@@ -648,11 +657,16 @@ export function ExamRunner({
           onSubmitClick={handleManualSubmitClick}
           submitting={submitting}
           submitted={submitted}
+          reviewMode={reviewMode}
+          onDoneClick={handleDoneClick}
         />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/10 bg-card/70 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/55 lg:col-span-3">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/15
+            bg-gradient-to-b from-sky-50 via-sky-100 to-indigo-100 shadow-lg shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 
+            lg:col-span-3 ring-1 ring-white/10 dark:ring-white/5">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary/20 via-transparent to-emerald-500/20" />
             <CardHeader>
               <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg leading-relaxed">
                 <span>{`Câu ${currentIndex + 1}/${questions.length}`}</span>
@@ -678,6 +692,9 @@ export function ExamRunner({
                     flash={flash}
                     onSelectOption={onSelectOption}
                     onToggleFlag={toggleFlag}
+                    reviewMode={reviewMode}
+                    onActivate={goToIndex}
+                    isActive={idx === currentIndex}
                   />
                 );
               })}
@@ -717,32 +734,35 @@ export function ExamRunner({
             answers={persisted.answers}
             flagged={persisted.flagged ?? {}}
             onGoToIndex={goToIndex}
+            reviewMode={reviewMode}
             footer={
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    removeLocalStorageItem(storageKey);
-                    window.location.reload();
-                  }}
-                >
-                  Reset
-                </Button>
-                {dataMode === "mock" ? (
+              reviewMode ? null : (
+                <>
                   <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleRandomAnswersClick}
-                    disabled={submitting || submitted}
+                    variant="outline"
+                    onClick={() => {
+                      removeLocalStorageItem(storageKey);
+                      window.location.reload();
+                    }}
                   >
-                    Random đáp án
+                    Reset
                   </Button>
-                ) : (
-                  <Button asChild variant="secondary">
-                    <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
-                  </Button>
-                )}
-              </>
+                  {dataMode === "mock" ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleRandomAnswersClick}
+                      disabled={submitting || submitted}
+                    >
+                      Random đáp án
+                    </Button>
+                  ) : (
+                    <Button asChild variant="secondary">
+                      <Link href={`/exam/${contestId}?mock=1`}>Chạy mock</Link>
+                    </Button>
+                  )}
+                </>
+              )
             }
           />
         </div>
