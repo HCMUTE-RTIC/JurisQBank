@@ -80,7 +80,7 @@ export function ExamQuestionCard({
     <div
       id={`exam-question-${question.id}`}
       className={cn(
-        "relative scroll-mt-4 rounded-2xl border-2 bg-gradient-to-br from-card via-card to-muted/30 p-5 shadow-md transition-all duration-300",
+        "relative scroll-mt-4 rounded-2xl border-2 bg-card p-5 shadow-md transition-all duration-300",
         isActive
           ? "border-primary/70 shadow-lg shadow-primary/10 ring-2 ring-primary/25 scale-[1.01]"
           : "border-border/80 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",

@@ -41,7 +41,21 @@ export function QuestionNavigator({
   reviewMode = false,
 }: QuestionNavigatorProps) {
   return (
-    <Card className="relative flex min-h-0 flex-col shadow-lg shadow-primary/5 lg:col-span-1 border-primary/15 bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 ring-1 ring-white/10 dark:ring-white/5">
+    <Card className="relative flex min-h-0 flex-col 
+      shadow-lg shadow-primary/5 
+      lg:col-span-1 
+      border-primary/10 
+      bg-gradient-to-b 
+      from-sky-50/80 
+      via-sky-50/60 
+      to-indigo-50/60 
+      backdrop-blur-xl 
+      supports-[backdrop-filter]:bg-blue-50/40 
+      ring-1 ring-white/10 
+      dark:from-blue-950/30 
+      dark:via-indigo-950/25 
+      dark:to-sky-950/20 
+      dark:ring-white/5">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       <div className="pointer-events-none absolute -right-12 -top-12 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
       <CardHeader className="relative">

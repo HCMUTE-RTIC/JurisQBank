@@ -48,7 +48,7 @@ export function ExamHeader({
     total > 0 ? Math.round((answeredCount / total) * 100) : 0;
 
   return (
-    <Card className="relative overflow-hidden shadow-lg shadow-indigo-500/10 border-indigo-200/60 bg-gradient-to-b from-indigo-50/90 via-card/95 to-card/90 ring-1 ring-indigo-500/15 backdrop-blur-xl dark:border-indigo-900/50 dark:from-indigo-950/40 dark:ring-indigo-400/15 dark:shadow-indigo-500/5">
+    <Card className="relative overflow-hidden shadow-lg shadow-indigo-500/10 border-indigo-200/60 bg-gradient-to-b from-sky-50/95 via-blue-100/70 to-indigo-100/60 ring-1 ring-indigo-500/15 backdrop-blur-xl dark:border-indigo-900/50 dark:from-sky-950/45 dark:via-indigo-950/35 dark:to-indigo-950/25 dark:ring-indigo-400/15 dark:shadow-indigo-500/5">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-indigo-500/50 via-sky-400/40 to-emerald-400/40" />
       <div className="pointer-events-none absolute -left-24 -top-24 h-48 w-48 rounded-full bg-indigo-400/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-16 -bottom-16 h-32 w-32 rounded-full bg-emerald-400/10 blur-2xl" />

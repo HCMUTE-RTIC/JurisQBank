@@ -662,7 +662,9 @@ export function ExamRunner({
         />
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/15 bg-card/80 shadow-lg shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 lg:col-span-3 ring-1 ring-white/10 dark:ring-white/5">
+          <Card className="relative flex min-h-0 flex-col overflow-hidden border-primary/15
+            bg-gradient-to-b from-sky-50 via-sky-100 to-indigo-100 shadow-lg shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 
+            lg:col-span-3 ring-1 ring-white/10 dark:ring-white/5">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary/20 via-transparent to-emerald-500/20" />
             <CardHeader>
